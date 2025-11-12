@@ -1,6 +1,5 @@
 package com.pixelpro.variants.entity;
 
-import com.pixelpro.attributes.entity.AttributeValueEntity;
 import com.pixelpro.catalog.entity.ProductEntity;
 import com.pixelpro.common.entity.AuditableEntity;
 import com.pixelpro.inventory.entity.InventoryEntity;
@@ -9,8 +8,6 @@ import jakarta.validation.constraints.*;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.util.HashSet;
-import java.util.Set;
 
 
 /**
@@ -49,14 +46,6 @@ public class VariantEntity extends AuditableEntity {
     @JoinColumn(name = "product_id", nullable = false)
     private ProductEntity product;
 
-    // AttributeEntity valores (ejem., Color: Rojo, Talla: M)
-    // Manteniéndolo simple (no cascade) asi que Attributes son gestionados en /attributes.
-    @ManyToMany
-    @JoinTable(name = "variant_attribute_values",
-            joinColumns = @JoinColumn(name = "variant_id"),
-            inverseJoinColumns = @JoinColumn(name = "attribute_value_id"))
-    @Builder.Default
-    private Set<AttributeValueEntity> attributeValues = new HashSet<>();
 
     @OneToOne(mappedBy = "variant")
     private InventoryEntity inventory;
