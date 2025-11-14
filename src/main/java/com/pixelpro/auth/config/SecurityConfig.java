@@ -37,11 +37,13 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
 
-                                // --- ¡AQUÍ ESTÁ EL ARREGLO! ---
-                                // 1. /login, /register Y /me son públicos.
-                                .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/me").permitAll()
-                                // 2. /logout SÍ requiere estar autenticado.
-                                .requestMatchers("/api/auth/logout").authenticated()
+                                // --- ESTA ES LA CORRECCIÓN ---
+                                // 1. login y register son públicos
+                                .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
+
+                                // 2. logout Y me SÍ requieren estar autenticado
+                                .requestMatchers("/api/auth/logout", "/api/auth/me").authenticated()
+
                                 // 3. El resto de las reglas
                                 .requestMatchers("/api/public/**").permitAll()
                                 .requestMatchers(
