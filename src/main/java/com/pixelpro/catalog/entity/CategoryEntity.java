@@ -1,8 +1,7 @@
 package com.pixelpro.catalog.entity;
 
+import com.pixelpro.common.entity.AuditableEntity;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.util.ArrayList;
@@ -14,15 +13,13 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "categories")
-public class CategoryEntity {
+@Table(name = "category")
+public class CategoryEntity extends AuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
-    @Size(max = 80)
-    @Column(name = "category_name", nullable = false, length = 80)
+    @Column(nullable = false)
     private String name;
 
     @ManyToOne
@@ -32,10 +29,4 @@ public class CategoryEntity {
     @ManyToMany(mappedBy = "categories")
     @Builder.Default
     private List<ProductEntity> products = new ArrayList<>();
-
-    @OneToMany(mappedBy = "parentCategory",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true)
-    @Builder.Default
-    private List<CategoryEntity> subCategories = new ArrayList<>();
 }

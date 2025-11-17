@@ -1,6 +1,6 @@
 package com.pixelpro.orders.entity;
 
-import com.pixelpro.variants.entity.VariantEntity;
+import com.pixelpro.catalog.entity.ProductEntity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -35,6 +35,6 @@ public class OrderItemEntity {
     private OrderEntity order;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "variant_id", nullable = false)
-    private VariantEntity variant;
+    @JoinColumn(name = "product_id", nullable = false)
+    private ProductEntity product;
 }

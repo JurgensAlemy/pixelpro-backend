@@ -87,29 +87,29 @@ public class AdminCustomerController {
     }
 
     // ADDRESSES (admin view)
-    @Operation(summary = "List addresses of a customer")
-    @GetMapping("/{customerId}/addresses")
-    public ResponseEntity<List<AddressDto>> getAddresses(@PathVariable Long customerId) {
-        return ResponseEntity.ok(addressService.getAddressesByCustomerId(customerId));
-    }
-
-    @Operation(summary = "Add address to a customer")
-    @PostMapping("/{customerId}/addresses")
-    public ResponseEntity<AddressDto> addAddress(
-            @PathVariable Long customerId,
-            @Valid @RequestBody AddressDto dto
-    ) {
-        var created = addressService.addAddressByAdmin(customerId, dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
-    }
-
-    @Operation(summary = "Delete an address from a customer")
-    @DeleteMapping("/{customerId}/addresses/{addressId}")
-    public ResponseEntity<Void> deleteAddress(
-            @PathVariable Long customerId,
-            @PathVariable Long addressId
-    ) {
-        addressService.deleteAddressByAdmin(customerId, addressId);
-        return ResponseEntity.noContent().build();
-    }
+//    @Operation(summary = "List addresses of a customer")
+//    @GetMapping("/{customerId}/addresses")
+//    public ResponseEntity<List<AddressDto>> getAddresses(@PathVariable Long customerId) {
+//        return ResponseEntity.ok(addressService.getAddressesByCustomerId(customerId));
+//    }
+//
+//    @Operation(summary = "Add address to a customer")
+//    @PostMapping("/{customerId}/addresses")
+//    public ResponseEntity<AddressDto> addAddress(
+//            @PathVariable Long customerId,
+//            @Valid @RequestBody AddressDto dto
+//    ) {
+//        var created = addressService.addAddressByAdmin(customerId, dto);
+//        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+//    }
+//
+//    @Operation(summary = "Delete an address from a customer")
+//    @DeleteMapping("/{customerId}/addresses/{addressId}")
+//    public ResponseEntity<Void> deleteAddress(
+//            @PathVariable Long customerId,
+//            @PathVariable Long addressId
+//    ) {
+//        addressService.deleteAddressByAdmin(customerId, addressId);
+//        return ResponseEntity.noContent().build();
+//    }
 }

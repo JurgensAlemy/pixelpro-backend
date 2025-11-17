@@ -11,6 +11,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,10 +51,21 @@ public class OrderEntity extends AuditableEntity {
     @JoinColumn(name = "shipping_address_id")
     private AddressEntity shippingAddress; // puede ser null si es STORE_PICKUP
 
-    @OneToOne(mappedBy = "order",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true)
-    private OrderDetailEntity detail;
+    @NotNull
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal subtotal;
+
+    @NotNull
+    @Column(name = "shipping_cost", nullable = false, precision = 10, scale = 2)
+    private BigDecimal shippingCost;
+
+    @NotNull
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal discount;
+
+    @NotNull
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal total;
 
     @OneToMany(mappedBy = "order",
             cascade = CascadeType.ALL,

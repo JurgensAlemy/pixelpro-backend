@@ -36,7 +36,6 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
-
                                 // --- ¡AQUÍ ESTÁ EL ARREGLO! ---
                                 // 1. /login, /register Y /me son públicos.
                                 .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/me").permitAll()
@@ -53,7 +52,9 @@ public class SecurityConfig {
                                         "/swagger-resources/**",
                                         "/webjars/**"
                                 ).permitAll()
-                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                                .requestMatchers("/api/admin/**")
+                                .permitAll()
+//                                .hasRole("ADMIN")
                                 .anyRequest().authenticated()
                         // --- FIN DEL ARREGLO ---
                 )
