@@ -8,19 +8,21 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional; // Importante
 
 import java.util.stream.Collectors;
 
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
-    private final UserRepository userRepository;
 
+    private final UserRepository userRepository;
 
     public UserDetailsServiceImpl(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
-    
+
     @Override
+    @Transactional // ¡Importante para evitar LazyInitializationException!
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         UserEntity u = userRepository.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
@@ -28,11 +30,14 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         return User.builder()
                 .username(u.getEmail())
                 .password(u.getPasswordHash())
+                // 1. Aquí añadimos el prefijo "ROLE_"
                 .authorities(
                         u.getRoles().stream()
                                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getRoleName().name()))
                                 .collect(Collectors.toSet())
                 )
+                // 2. Aquí comprobamos si la cuenta está deshabilitada
+                .disabled(!u.isEnabled())
                 .build();
     }
 }
