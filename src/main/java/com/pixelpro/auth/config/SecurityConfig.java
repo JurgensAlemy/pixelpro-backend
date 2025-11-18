@@ -1,6 +1,6 @@
 package com.pixelpro.auth.config;
 
-import com.pixelpro.common.security.CustomUserDetailsService;
+import com.pixelpro.auth.service.UserDetailsServiceImpl; // ¡El import correcto!
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,7 +27,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final CustomUserDetailsService userDetailsService;
+    private final UserDetailsServiceImpl userDetailsService; // ¡La inyección correcta!
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
@@ -36,26 +36,17 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
+                        // Reglas públicas
+                        .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
+                        .requestMatchers("/swagger-ui/*", "/v3/api-docs/", "/api/public/*").permitAll()
 
-                                // --- ¡AQUÍ ESTÁ EL ARREGLO! ---
-                                // 1. /login, /register Y /me son públicos.
-                                .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/me").permitAll()
-                                // 2. /logout SÍ requiere estar autenticado.
-                                .requestMatchers("/api/auth/logout").authenticated()
-                                // 3. El resto de las reglas
-                                .requestMatchers("/api/public/**").permitAll()
-                                .requestMatchers(
-                                        "/swagger-ui/**",
-                                        "/swagger-ui.html",
-                                        "/v3/api-docs/**",
-                                        "/v3/api-docs.yaml",
-                                        "/v3/api-docs.json",
-                                        "/swagger-resources/**",
-                                        "/webjars/**"
-                                ).permitAll()
-                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                                .anyRequest().authenticated()
-                        // --- FIN DEL ARREGLO ---
+                        // Reglas autenticadas
+                        .requestMatchers("/api/auth/logout", "/api/auth/me").authenticated()
+
+                        // Regla de Admin (DEBE USAR hasRole)
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        .anyRequest().authenticated()
                 )
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/logout")
@@ -68,7 +59,7 @@ public class SecurityConfig {
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setUserDetailsService(userDetailsService); // ¡Usando el servicio correcto!
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
@@ -83,16 +74,13 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    // Tu CORS está perfecto
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         var c = new CorsConfiguration();
         c.setAllowedOrigins(List.of(
-                "http://127.0.0.1:5500",
-                "http://127.0.0.1:5501",
-                "http://127.0.0.1:5502",
-                "http://localhost:5500",
-                "http://localhost:5501",
-                "http://localhost:5502"
+                "http://127.0.0.1:5500", "http://127.0.0.1:5501", "http://127.0.0.1:5502",
+                "http://localhost:5500", "http://localhost:5501", "http://localhost:5502"
         ));
         c.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         c.setAllowedHeaders(List.of("*"));
