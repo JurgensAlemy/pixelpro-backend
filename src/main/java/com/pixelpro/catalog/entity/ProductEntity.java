@@ -1,11 +1,11 @@
 package com.pixelpro.catalog.entity;
 
 import com.pixelpro.common.entity.AuditableEntity;
+import com.pixelpro.inventory.entity.InventoryEntity;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,26 +15,32 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "products")
+@Table(name = "product")
 public class ProductEntity extends AuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
-    @Size(max = 120)
-    @Column(nullable = false, length = 120)
+    @Column(nullable = false, unique = true)
+    private String sku;
+
+    @Column(nullable = false)
     private String name;
 
-    @NotBlank
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column
+    private String model;
+
+    @Column(columnDefinition = "TEXT")
     private String description;
 
-    @OneToMany(mappedBy = "product",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true)
-    @Builder.Default
-    private List<ProductImageEntity> images = new ArrayList<>();
+    @Column(nullable = false)
+    private BigDecimal price;
+
+    @Column(name = "image_url")
+    private String imageUrl;
+
+    @Column(nullable = false)
+    private String status;
 
     @ManyToMany
     @JoinTable(
@@ -44,4 +50,7 @@ public class ProductEntity extends AuditableEntity {
     )
     @Builder.Default
     private List<CategoryEntity> categories = new ArrayList<>();
+
+    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private InventoryEntity inventory;
 }

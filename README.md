@@ -5,4 +5,4 @@ Se ejecuta con **Tomcat embebido** y expone la API REST.
 
 ## 🔗 Proyecto relacionado
 
-[PixelPro Frontend](https://github.com/JurgensAlemy/pixelpro-v2)
+[PixelPro Frontend](https://github.com/JurgensAlemy/pixelpro-fronted)

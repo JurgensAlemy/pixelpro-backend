@@ -1,10 +1,8 @@
 package com.pixelpro.inventory.entity;
 
+import com.pixelpro.catalog.entity.ProductEntity;
 import com.pixelpro.common.entity.AuditableEntity;
-import com.pixelpro.variants.entity.VariantEntity;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.PositiveOrZero;
 import lombok.*;
 
 @Getter
@@ -19,23 +17,10 @@ public class InventoryEntity extends AuditableEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @PositiveOrZero
     @Column(name = "qty_stock", nullable = false)
-    private int quantityOnHand;
+    private int qtyStock;
 
-    @PositiveOrZero
-    @Column(name = "qty_reserved", nullable = false)
-    private int reservedQuantity;
-
-    @Positive
-    @Column(name = "reorder_point", nullable = false)
-    private int reorderPoint;
-
-    @Positive
-    @Column(name = "safety_stock", nullable = false)
-    private int safetyStock;
-
-    @OneToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "variant_id", nullable = false)
-    private VariantEntity variant;
+    @OneToOne
+    @JoinColumn(name = "product_id", nullable = false)
+    private ProductEntity product;
 }

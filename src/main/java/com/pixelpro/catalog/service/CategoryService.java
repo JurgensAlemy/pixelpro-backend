@@ -1,27 +1,19 @@
 package com.pixelpro.catalog.service;
 
-import com.pixelpro.catalog.dto.admin.CategoryAdminCreateRequest;
-import com.pixelpro.catalog.dto.admin.CategoryAdminResponse;
-import com.pixelpro.catalog.dto.admin.CategoryAdminUpdateRequest;
-import com.pixelpro.catalog.dto.web.CategoryWebResponse;
+import com.pixelpro.catalog.dto.CategoryDto;
 
 import java.util.List;
 
 public interface CategoryService {
 
-    // Admin
-    CategoryAdminResponse create(CategoryAdminCreateRequest request);
+    CategoryDto create(CategoryDto dto);
 
-    CategoryAdminResponse update(Long id, CategoryAdminUpdateRequest request);
+    CategoryDto findById(Long id);
+
+    List<CategoryDto> findAll();
+
+    CategoryDto update(Long id, CategoryDto dto);
 
     void delete(Long id);
-
-    CategoryAdminResponse findById(Long id);
-
-    List<CategoryAdminResponse> findAllAsTree();
-
-    // Public Web
-    List<CategoryWebResponse> findAllRootCategories();
-
-    List<CategoryWebResponse> findSubcategoriesByParent(Long parentId);
 }
+
