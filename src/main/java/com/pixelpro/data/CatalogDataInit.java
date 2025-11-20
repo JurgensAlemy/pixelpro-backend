@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 public class CatalogDataInit implements CommandLineRunner {
 
     @Override
-    public void run(String... args) throws Exception {
+    public void run(String... args) {
 
         System.out.println("📚 Inicializando categorías y productos de catálogo...");
 

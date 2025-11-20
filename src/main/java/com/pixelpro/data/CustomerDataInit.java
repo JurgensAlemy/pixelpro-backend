@@ -1,17 +1,13 @@
 package com.pixelpro.data;
 
+import com.pixelpro.auth.entity.RoleEnum;
+import com.pixelpro.auth.entity.UserEntity;
+import com.pixelpro.auth.service.UserService;
 import com.pixelpro.customers.entity.AddressEntity;
 import com.pixelpro.customers.entity.CustomerEntity;
 import com.pixelpro.customers.entity.enums.CustomerType;
 import com.pixelpro.customers.entity.enums.DocumentType;
 import com.pixelpro.customers.repository.CustomerRepository;
-// --- CAMBIOS AQUÍ ---
-import com.pixelpro.auth.entity.UserEntity;
-import com.pixelpro.auth.entity.RoleEnum;
-import com.pixelpro.auth.service.UserService;
-
-import java.util.Set; // <-- IMPORTANTE: Se añade esta línea
-// --- FIN DE CAMBIOS ---
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
@@ -22,12 +18,12 @@ import java.util.List;
 import java.util.function.BiFunction;
 
 @Component
-@Order(1) // Se ejecuta después de RoleUserDataInit (Order 0)
+@Order(1)
 @RequiredArgsConstructor
 public class CustomerDataInit implements CommandLineRunner {
 
     private final CustomerRepository customerRepository;
-    private final UserService userService; // Esta línea ahora funciona
+    private final UserService userService;
 
     @Override
     public void run(String... args) {
@@ -71,17 +67,13 @@ public class CustomerDataInit implements CommandLineRunner {
             // 🔹 Crear cuenta de usuario (solo para algunos)
             if (Math.random() < 0.5) { // 50% de los clientes tendrán cuenta
 
-                // --- CAMBIO AQUÍ ---
-                // Se llama a 'register' y se pasa un Set de roles
                 UserEntity user = userService.register(
                         c.getEmail(),
                         "123456",
                         RoleEnum.CUSTOMER
                 );
-                // --- FIN DE CAMBIO ---
-
                 c.setUserAccount(user);
-                c.setEmail(user.getEmail()); // sincronizar email
+                c.setEmail(user.getEmail());
             }
 
             customers.add(c);

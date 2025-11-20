@@ -1,9 +1,6 @@
 package com.pixelpro.common.security;
 
-// --- CAMBIO AQUÍ ---
-
-import com.pixelpro.auth.entity.UserEntity; // Apunta a la UserEntity de 'auth'
-// --- FIN DE CAMBIO ---
+import com.pixelpro.auth.entity.UserEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -11,7 +8,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 public class CustomUserDetails implements UserDetails {

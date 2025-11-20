@@ -1,23 +1,17 @@
 package com.pixelpro.data;
 
-// --- CAMBIOS AQUÍ ---
-
 import com.pixelpro.auth.entity.RoleEntity;
 import com.pixelpro.auth.entity.RoleEnum;
 import com.pixelpro.auth.repository.RoleRepository;
 import com.pixelpro.auth.repository.UserRepository;
 import com.pixelpro.auth.service.UserService;
-
-import java.util.Set; // <-- IMPORTANTE: Se añade esta línea
-// --- FIN DE CAMBIOS ---
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 @Component
-@Order(0) // Se asegura que esto corra antes que otros inicializadores
+@Order(0)
 @RequiredArgsConstructor
 public class RoleUserDataInit implements CommandLineRunner {
 
@@ -33,12 +27,9 @@ public class RoleUserDataInit implements CommandLineRunner {
         for (RoleEnum roleEnum : RoleEnum.values()) {
             roleRepository.findByRoleName(roleEnum)
                     .orElseGet(() -> {
-                        // --- CAMBIO 1 ---
-                        // El campo en tu RoleEntity.java se llama 'roleName', no 'role'.
                         RoleEntity role = RoleEntity.builder()
-                                .roleName(roleEnum) // <-- Corregido
+                                .roleName(roleEnum)
                                 .build();
-                        // --- FIN DE CAMBIO 1 ---
                         return roleRepository.save(role);
                     });
         }
@@ -46,10 +37,8 @@ public class RoleUserDataInit implements CommandLineRunner {
         // 2️⃣ Crear usuario admin por defecto
         if (userRepository.findByEmail("admin@pixelpro.com").isEmpty()) {
 
-            // --- CAMBIO 2 ---
             // El método en UserService.java se llama 'register' y espera un Set de roles.
             userService.register("admin@pixelpro.com", "admin123", RoleEnum.ADMIN);
-            // --- FIN DE CAMBIO 2 ---
 
             System.out.println("✅ Usuario admin creado: admin@pixelpro.com / admin123");
         } else {
