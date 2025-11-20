@@ -36,23 +36,21 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
-                                // Reglas públicas
-                                .requestMatchers("/api/auth/login", "/api/auth/register")
-                                .permitAll()
-                                .requestMatchers("/swagger-ui/*", "/v3/api-docs/", "/api/public/*")
-                                .permitAll()
+                        // Reglas públicas
+                        .requestMatchers("/api/auth/login", "/api/auth/register")
+                        .permitAll()
+                        .requestMatchers("/swagger-ui/*", "/v3/api-docs/", "/api/public/*")
+                        .permitAll()
 
-                                // Reglas autenticadas
-                                .requestMatchers("/api/auth/logout", "/api/auth/me")
-                                .authenticated()
+                        // Reglas autenticadas
+                        .requestMatchers("/api/auth/logout", "/api/auth/me")
+                        .authenticated()
 
-                                // Regla de Admin (DEBE USAR hasRole)
-                                .requestMatchers("/api/admin/**")
-//                        .hasRole("ADMIN")
-                                .permitAll()
-                                .anyRequest()
-//                                .authenticated()
-                                .permitAll()
+                        // Regla de Admin (DEBE USAR hasRole)
+                        .requestMatchers("/api/admin/**")
+                        .hasRole("ADMIN")
+                        .anyRequest()
+                        .authenticated()
                 )
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/logout")
