@@ -1,7 +1,6 @@
 package com.pixelpro.catalog.entity;
 
 import com.pixelpro.common.entity.AuditableEntity;
-import com.pixelpro.inventory.entity.InventoryEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -42,6 +41,9 @@ public class ProductEntity extends AuditableEntity {
     @Column(nullable = false)
     private String status;
 
+    @Column(name = "qty_stock", nullable = false)
+    private int qtyStock;
+
     @ManyToMany
     @JoinTable(
             name = "product_categories",
@@ -50,7 +52,4 @@ public class ProductEntity extends AuditableEntity {
     )
     @Builder.Default
     private List<CategoryEntity> categories = new ArrayList<>();
-
-    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
-    private InventoryEntity inventory;
 }
