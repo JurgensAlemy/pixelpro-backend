@@ -36,17 +36,23 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
-                        // Reglas públicas
-                        .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
-                        .requestMatchers("/swagger-ui/*", "/v3/api-docs/", "/api/public/*").permitAll()
+                                // Reglas públicas
+                                .requestMatchers("/api/auth/login", "/api/auth/register")
+                                .permitAll()
+                                .requestMatchers("/swagger-ui/*", "/v3/api-docs/", "/api/public/*")
+                                .permitAll()
 
-                        // Reglas autenticadas
-                        .requestMatchers("/api/auth/logout", "/api/auth/me").authenticated()
+                                // Reglas autenticadas
+                                .requestMatchers("/api/auth/logout", "/api/auth/me")
+                                .authenticated()
 
-                        // Regla de Admin (DEBE USAR hasRole)
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-
-                        .anyRequest().authenticated()
+                                // Regla de Admin (DEBE USAR hasRole)
+                                .requestMatchers("/api/admin/**")
+//                        .hasRole("ADMIN")
+                                .permitAll()
+                                .anyRequest()
+//                                .authenticated()
+                                .permitAll()
                 )
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/logout")
@@ -79,8 +85,8 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         var c = new CorsConfiguration();
         c.setAllowedOrigins(List.of(
-                "http://127.0.0.1:5500", "http://127.0.0.1:5501", "http://127.0.0.1:5502",
-                "http://localhost:5500", "http://localhost:5501", "http://localhost:5502"
+                "http://127.0.0.1:5500", "http://127.0.0.1:5501", "http://127.0.0.1:5502", "http://127.0.0.1:4200",
+                "http://localhost:5500", "http://localhost:5501", "http://localhost:5502", "http://localhost:4200"
         ));
         c.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         c.setAllowedHeaders(List.of("*"));

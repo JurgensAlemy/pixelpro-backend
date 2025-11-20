@@ -1,11 +1,13 @@
 package com.pixelpro.data;
 
 // --- CAMBIOS AQUÍ ---
+
 import com.pixelpro.auth.entity.RoleEntity;
 import com.pixelpro.auth.entity.RoleEnum;
 import com.pixelpro.auth.repository.RoleRepository;
 import com.pixelpro.auth.repository.UserRepository;
 import com.pixelpro.auth.service.UserService;
+
 import java.util.Set; // <-- IMPORTANTE: Se añade esta línea
 // --- FIN DE CAMBIOS ---
 
@@ -46,7 +48,7 @@ public class RoleUserDataInit implements CommandLineRunner {
 
             // --- CAMBIO 2 ---
             // El método en UserService.java se llama 'register' y espera un Set de roles.
-            userService.register("admin@pixelpro.com", "admin123", Set.of(RoleEnum.ADMIN));
+            userService.register("admin@pixelpro.com", "admin123", RoleEnum.ADMIN);
             // --- FIN DE CAMBIO 2 ---
 
             System.out.println("✅ Usuario admin creado: admin@pixelpro.com / admin123");

@@ -20,28 +20,27 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
-    public UserEntity register(String email, String rawPassword, Set<RoleEnum> roles) {
+    public UserEntity register(String email, String rawPassword, RoleEnum roleEnum) {
         if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("El email ya está registrado");
         }
+        // si no envían un rol, usar CUSTOMER por defecto
+        if (roleEnum == null) {
+            roleEnum = RoleEnum.CUSTOMER;
+        }
+        // Obtener o crear el role
+        RoleEnum finalRoleEnum = roleEnum;
+        RoleEntity role = roleRepository.findByRoleName(roleEnum)
+                .orElseGet(() ->
+                        roleRepository.save(RoleEntity.builder().roleName(finalRoleEnum).build())
+                );
+
         UserEntity user = UserEntity.builder()
                 .email(email)
                 .passwordHash(passwordEncoder.encode(rawPassword))
+                .role(role)
+                .enabled(true)
                 .build();
-//        user.setEnabled(true);
-        
-        // Roles por defecto
-        if (roles == null || roles.isEmpty()) {
-            RoleEntity userRole = roleRepository.findByRoleName(RoleEnum.CUSTOMER)
-                    .orElseGet(() -> roleRepository.save(RoleEntity.builder().roleName(RoleEnum.CUSTOMER).build()));
-            user.getRoles().add(userRole);
-        } else {
-            for (RoleEnum roleEnum : roles) {
-                RoleEntity r = roleRepository.findByRoleName(roleEnum)
-                        .orElseGet(() -> roleRepository.save(RoleEntity.builder().roleName(roleEnum).build()));
-                user.getRoles().add(r);
-            }
-        }
         return userRepository.save(user);
     }
 }

@@ -9,6 +9,7 @@ import com.pixelpro.customers.repository.CustomerRepository;
 import com.pixelpro.auth.entity.UserEntity;
 import com.pixelpro.auth.entity.RoleEnum;
 import com.pixelpro.auth.service.UserService;
+
 import java.util.Set; // <-- IMPORTANTE: Se añade esta línea
 // --- FIN DE CAMBIOS ---
 import lombok.RequiredArgsConstructor;
@@ -75,7 +76,7 @@ public class CustomerDataInit implements CommandLineRunner {
                 UserEntity user = userService.register(
                         c.getEmail(),
                         "123456",
-                        Set.of(RoleEnum.CUSTOMER)
+                        RoleEnum.CUSTOMER
                 );
                 // --- FIN DE CAMBIO ---
 

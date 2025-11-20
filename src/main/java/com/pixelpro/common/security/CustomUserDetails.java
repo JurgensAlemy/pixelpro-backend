@@ -1,6 +1,7 @@
 package com.pixelpro.common.security;
 
 // --- CAMBIO AQUÍ ---
+
 import com.pixelpro.auth.entity.UserEntity; // Apunta a la UserEntity de 'auth'
 // --- FIN DE CAMBIO ---
 import lombok.RequiredArgsConstructor;
@@ -9,6 +10,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -18,10 +20,8 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return user.getRoles().stream()
-                // El prefijo "ROLE_" es importante para Spring Security
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getRoleName().name()))
-                .collect(Collectors.toSet());
+        String roleName = String.valueOf(user.getRole().getRoleName());
+        return List.of(new SimpleGrantedAuthority("ROLE_" + roleName));
     }
 
     @Override

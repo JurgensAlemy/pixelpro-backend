@@ -31,11 +31,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 .username(u.getEmail())
                 .password(u.getPasswordHash())
                 // 1. Aquí añadimos el prefijo "ROLE_"
-                .authorities(
-                        u.getRoles().stream()
-                                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getRoleName().name()))
-                                .collect(Collectors.toSet())
-                )
+                .authorities(new SimpleGrantedAuthority("ROLE_" + u.getRole().getRoleName().name()))
                 // 2. Aquí comprobamos si la cuenta está deshabilitada
                 .disabled(!u.isEnabled())
                 .build();
