@@ -1,10 +1,10 @@
 package com.pixelpro.billing.entity.enums;
 
 public enum PaymentStatus {
-    PENDING,        // recibido intento, en proceso
-    AUTHORIZED,     // autorizado por la pasarela
-    CAPTURED,       // cobro confirmado/capturado
-    FAILED,         // rechazado o error
-    CANCELED,       // cancelado antes de capturar
-    REFUNDED        // reembolsado total/parcial
+    PENDIENTE,        // recibido intento, en proceso
+    AUTORIZADO,     // autorizado por la pasarela
+    CONFIRMADO,       // cobro confirmado/capturado
+    RECHAZADO,         // rechazado o error
+    CANCELADO,       // cancelado antes de capturar
+    REEMBOLSADO        // reembolsado total/parcial
 }

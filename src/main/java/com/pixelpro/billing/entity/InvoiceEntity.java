@@ -10,7 +10,7 @@ import jakarta.validation.constraints.*;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -19,7 +19,7 @@ import java.time.OffsetDateTime;
 @Builder
 @Entity
 @Table(name = "invoices")
-public class Invoice extends AuditableEntity {
+public class InvoiceEntity extends AuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -27,7 +27,7 @@ public class Invoice extends AuditableEntity {
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private InvoiceType type;
+    private InvoiceType type; // BOLETA O FACTURA
 
     @NotBlank
     @Size(max = 10)
@@ -41,7 +41,7 @@ public class Invoice extends AuditableEntity {
 
     @PastOrPresent
     @Column(name = "issued_at")
-    private OffsetDateTime issuedAt;
+    private LocalDateTime issuedAt;
 
     @NotNull
     @PositiveOrZero
@@ -57,7 +57,7 @@ public class Invoice extends AuditableEntity {
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
-    private InvoiceStatus status; // ISSUED | VOIDED | PENDING_SUBMISSION
+    private InvoiceStatus status; // EMITIDO, ANULADO, ENVIO_PENDIENTE
 
     @Lob
     @Column(name = "hash_value")

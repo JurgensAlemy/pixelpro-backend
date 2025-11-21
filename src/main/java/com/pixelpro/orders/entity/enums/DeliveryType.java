@@ -1,6 +1,6 @@
 package com.pixelpro.orders.entity.enums;
 
 public enum DeliveryType {
-    SHIPPING,         // entrega a domicilio
-    STORE_PICKUP      // recojo en tienda
+    A_DOMICILIO,         // entrega a domicilio
+    RECOJO_EN_TIENDA      // recojo en tienda
 }

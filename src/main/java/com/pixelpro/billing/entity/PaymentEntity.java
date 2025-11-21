@@ -10,7 +10,7 @@ import jakarta.validation.constraints.*;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -19,7 +19,7 @@ import java.time.OffsetDateTime;
 @Builder
 @Entity
 @Table(name = "payments")
-public class Payment extends AuditableEntity {
+public class PaymentEntity extends AuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -52,7 +52,7 @@ public class Payment extends AuditableEntity {
 
     @PastOrPresent
     @Column(name = "paid_at")
-    private OffsetDateTime paidAt;
+    private LocalDateTime paidAt;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)

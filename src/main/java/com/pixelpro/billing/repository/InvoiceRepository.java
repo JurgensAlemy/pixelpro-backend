@@ -1,7 +1,7 @@
 package com.pixelpro.billing.repository;
 
-import com.pixelpro.billing.entity.Invoice;
+import com.pixelpro.billing.entity.InvoiceEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
+public interface InvoiceRepository extends JpaRepository<InvoiceEntity, Long> {
 }
