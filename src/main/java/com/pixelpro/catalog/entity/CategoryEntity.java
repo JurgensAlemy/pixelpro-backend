@@ -26,7 +26,7 @@ public class CategoryEntity extends AuditableEntity {
     @JoinColumn(name = "parent_category_id")
     private CategoryEntity parentCategory;
 
-    @ManyToMany(mappedBy = "categories")
+    @OneToMany(mappedBy = "category")
     @Builder.Default
     private List<ProductEntity> products = new ArrayList<>();
 }

@@ -5,8 +5,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
 
 @Getter
 @Setter
@@ -44,12 +42,7 @@ public class ProductEntity extends AuditableEntity {
     @Column(name = "qty_stock", nullable = false)
     private int qtyStock;
 
-    @ManyToMany
-    @JoinTable(
-            name = "product_categories",
-            joinColumns = @JoinColumn(name = "product_id"),
-            inverseJoinColumns = @JoinColumn(name = "category_id")
-    )
-    @Builder.Default
-    private List<CategoryEntity> categories = new ArrayList<>();
+    @ManyToOne
+    @JoinColumn(name = "category_id")
+    private CategoryEntity category;
 }

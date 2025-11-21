@@ -3,12 +3,10 @@ package com.pixelpro.catalog.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 @Schema(description = "Datos para crear un nuevo producto")
 public record ProductCreateDto(
@@ -34,7 +32,7 @@ public record ProductCreateDto(
         @Schema(description = "URL de la imagen principal del producto", example = "https://example.com/products/hp-pavilion.jpg", nullable = true)
         String imageUrl,
 
-        @Schema(description = "Estado del producto", example = "ACTIVE", allowableValues = {"ACTIVE", "INACTIVE"}, requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Estado del producto", example = "ACTIVO", allowableValues = {"ACTIVO", "INACTIVO"}, requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "Status is required")
         String status,
 
@@ -43,8 +41,8 @@ public record ProductCreateDto(
         @Min(value = 0, message = "Quantity in stock cannot be negative")
         Integer qtyStock,
 
-        @Schema(description = "IDs de las categorías a las que pertenece el producto (mínimo 1)", example = "[1, 3]", requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotEmpty(message = "At least one category is required")
-        List<Long> categoryIds
+        @Schema(description = "ID de la categoría a la que pertenece el producto", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+        @NotNull(message = "Category is required")
+        Long categoryId
 ) {
 }

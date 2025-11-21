@@ -31,7 +31,7 @@ public class AdminProductController {
 
     @Operation(
             summary = "Crear nuevo producto",
-            description = "Permite al administrador crear un nuevo producto en el catálogo. El SKU debe ser único. Se debe asignar al menos una categoría."
+            description = "Permite al administrador crear un nuevo producto en el catálogo. El SKU debe ser único. Se debe asignar una categoría."
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -46,7 +46,7 @@ public class AdminProductController {
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Una o más categorías especificadas no existen",
+                    description = "La categoría especificada no existe",
                     content = @Content(schema = @Schema(implementation = com.pixelpro.common.exception.ApiError.class))
             ),
             @ApiResponse(
@@ -69,7 +69,7 @@ public class AdminProductController {
 
     @Operation(
             summary = "Obtener producto por ID",
-            description = "Obtiene los detalles completos de un producto específico mediante su identificador único, incluyendo sus categorías asociadas."
+            description = "Obtiene los detalles completos de un producto específico mediante su identificador único, incluyendo su categoría asociada."
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -119,8 +119,8 @@ public class AdminProductController {
 
             @Parameter(
                     description = "Filtro por estado del producto (coincidencia exacta)",
-                    example = "ACTIVE",
-                    schema = @Schema(allowableValues = {"ACTIVE", "INACTIVE"})
+                    example = "ACTIVO",
+                    schema = @Schema(allowableValues = {"ACTIVO", "INACTIVO"})
             )
             @RequestParam(required = false) String status,
 
@@ -142,7 +142,7 @@ public class AdminProductController {
 
     @Operation(
             summary = "Actualizar producto",
-            description = "Actualiza los datos de un producto existente. Todos los campos son opcionales. El SKU no se puede modificar. Si se especifican categorías, reemplaza completamente las categorías actuales."
+            description = "Actualiza los datos de un producto existente. Todos los campos son opcionales. El SKU no se puede modificar. Si se especifica una categoría, reemplaza la categoría actual."
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -157,7 +157,7 @@ public class AdminProductController {
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Producto no encontrado o una de las categorías especificadas no existe",
+                    description = "Producto no encontrado o la categoría especificada no existe",
                     content = @Content(schema = @Schema(implementation = com.pixelpro.common.exception.ApiError.class))
             )
     })

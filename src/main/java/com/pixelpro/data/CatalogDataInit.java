@@ -143,7 +143,7 @@ public class CatalogDataInit implements CommandLineRunner {
                         .imageUrl(imageUrl)
                         .status("ACTIVO")
                         .qtyStock(stock)
-                        .categories(List.of(category))
+                        .category(category)
                         .build();
 
                 products.add(product);
@@ -219,8 +219,7 @@ public class CatalogDataInit implements CommandLineRunner {
 
     private String generateImageUrl(String category, String fileNameBase) {
         String safeCategory = category.toLowerCase();
-        String safeFileName = fileNameBase.replace("_", "-").toLowerCase();
-        return String.format("/uploads/productos/%s/%s.webp", safeCategory, safeFileName);
+        return String.format("/uploads/products/%s/%s.webp", safeCategory, fileNameBase);
     }
 
     private BigDecimal generatePrice(String category, Random random) {

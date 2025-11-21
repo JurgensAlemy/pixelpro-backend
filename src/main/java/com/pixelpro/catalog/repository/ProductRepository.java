@@ -11,12 +11,11 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
     boolean existsBySku(String sku);
 
     @Query("""
-            SELECT DISTINCT p FROM ProductEntity p
-            LEFT JOIN p.categories c
+            SELECT p FROM ProductEntity p
             WHERE (COALESCE(:name, '') = '' OR LOWER(p.name) LIKE LOWER(CONCAT('%', :name, '%')))
             AND (COALESCE(:sku, '') = '' OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :sku, '%')))
             AND (COALESCE(:status, '') = '' OR p.status = :status)
-            AND (:categoryId IS NULL OR c.id = :categoryId)
+            AND (:categoryId IS NULL OR p.category.id = :categoryId)
             """)
     Page<ProductEntity> findByFilters(
             @Param("name") String name,
@@ -25,5 +24,4 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
             @Param("categoryId") Long categoryId,
             Pageable pageable
     );
-
 }

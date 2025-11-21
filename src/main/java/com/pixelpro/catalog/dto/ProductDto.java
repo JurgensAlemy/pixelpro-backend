@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Schema(description = "Producto del catálogo")
 public record ProductDto(
@@ -29,14 +28,14 @@ public record ProductDto(
         @Schema(description = "URL de la imagen del producto", example = "https://example.com/images/laptop.jpg")
         String imageUrl,
 
-        @Schema(description = "Estado del producto", example = "ACTIVE", allowableValues = {"ACTIVE", "INACTIVE"})
+        @Schema(description = "Estado del producto", example = "ACTIVO", allowableValues = {"ACTIVO", "INACTIVO"})
         String status,
 
         @Schema(description = "Cantidad disponible en inventario", example = "25")
         int qtyStock,
 
-        @Schema(description = "Lista de categorías asignadas al producto")
-        List<CategoryDto> categories,
+        @Schema(description = "Categoría del producto")
+        CategoryDto category,
 
         @Schema(description = "Fecha de creación del producto", example = "2024-01-15T10:30:00")
         LocalDateTime createdAt,

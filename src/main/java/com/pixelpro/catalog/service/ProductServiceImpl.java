@@ -16,9 +16,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -34,8 +31,8 @@ public class ProductServiceImpl implements ProductService {
             throw new ConflictException("Product with SKU '" + dto.sku() + "' already exists");
         }
         ProductEntity product = productMapper.toEntity(dto);
-        List<CategoryEntity> categories = loadCategories(dto.categoryIds());
-        product.setCategories(categories);
+        CategoryEntity category = loadCategory(dto.categoryId());
+        product.setCategory(category);
         ProductEntity saved = productRepository.save(product);
         return productMapper.toDto(saved);
     }
@@ -59,10 +56,9 @@ public class ProductServiceImpl implements ProductService {
         ProductEntity product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
         productMapper.updateEntityFromDto(dto, product);
-        if (dto.categoryIds() != null && !dto.categoryIds().isEmpty()) {
-            List<CategoryEntity> categories = loadCategories(dto.categoryIds());
-            product.getCategories().clear();
-            product.getCategories().addAll(categories);
+        if (dto.categoryId() != null) {
+            CategoryEntity category = loadCategory(dto.categoryId());
+            product.setCategory(category);
         }
         ProductEntity updated = productRepository.save(product);
         return productMapper.toDto(updated);
@@ -76,17 +72,8 @@ public class ProductServiceImpl implements ProductService {
         productRepository.delete(product);
     }
 
-    private List<CategoryEntity> loadCategories(List<Long> categoryIds) {
-        if (categoryIds == null || categoryIds.isEmpty()) {
-            throw new ConflictException("At least one category is required");
-        }
-        List<CategoryEntity> categories = new ArrayList<>();
-        for (Long categoryId : categoryIds) {
-            CategoryEntity category = categoryRepository.findById(categoryId)
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Category not found with id: " + categoryId));
-            categories.add(category);
-        }
-        return categories;
+    private CategoryEntity loadCategory(Long categoryId) {
+        return categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada con id: " + categoryId));
     }
 }
