@@ -134,7 +134,8 @@ public class AdminProductController {
                     description = "Parámetros de paginación y ordenamiento. Por defecto: página 0, tamaño 20, ordenado por createdAt DESC",
                     example = "page=0&size=10&sort=name,asc"
             )
-            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
+            Pageable pageable
     ) {
         Page<ProductDto> products = productService.findAll(name, sku, status, categoryId, pageable);
         return ResponseEntity.ok(products);

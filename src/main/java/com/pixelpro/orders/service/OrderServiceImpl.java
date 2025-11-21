@@ -1,129 +1,131 @@
 package com.pixelpro.orders.service;
 
-import com.pixelpro.customers.entity.AddressEntity;
-import com.pixelpro.customers.entity.CustomerEntity;
-import com.pixelpro.customers.repository.AddressRepository;
-import com.pixelpro.customers.repository.CustomerRepository;
+import com.pixelpro.billing.entity.PaymentEntity;
+import com.pixelpro.common.exception.ResourceNotFoundException;
 import com.pixelpro.orders.dto.OrderDto;
 import com.pixelpro.orders.entity.OrderEntity;
 import com.pixelpro.orders.entity.enums.DeliveryType;
 import com.pixelpro.orders.entity.enums.OrderStatus;
 import com.pixelpro.orders.mapper.OrderMapper;
 import com.pixelpro.orders.repository.OrderRepository;
-import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-
 @Service
-@Transactional
+@RequiredArgsConstructor
+@Transactional(readOnly = true) // 1. Regla general: Solo lectura (optimización)
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
-    private final CustomerRepository customerRepository;
-    private final AddressRepository addressRepository;
 
-    public OrderServiceImpl(OrderRepository orderRepository,
-                            OrderMapper orderMapper,
-                            CustomerRepository customerRepository,
-                            AddressRepository addressRepository) {
-        this.orderRepository = orderRepository;
-        this.orderMapper = orderMapper;
-        this.customerRepository = customerRepository;
-        this.addressRepository = addressRepository;
+    @Override
+    public Page<OrderDto> getAllOrders(String search, OrderStatus status, DeliveryType deliveryType, Pageable pageable) {
+        // Normalizar el search (null o vacío se convierte en null)
+        String normalizedSearch = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+
+        // Usar el método de filtrado combinado del repository
+        Page<OrderEntity> orders = orderRepository.findAllWithFilters(normalizedSearch, status, deliveryType, pageable);
+
+        // Mapeamos y forzamos la carga de colecciones lazy
+        return orders.map(entity -> {
+            forceLoadLazyCollections(entity);
+            return orderMapper.toDto(entity);
+        });
     }
 
     @Override
-    public OrderDto create(OrderDto dto) {
-        OrderEntity entity = new OrderEntity();
-        entity.setCode(dto.code());
-        entity.setStatus(OrderStatus.valueOf(dto.status()));
-        entity.setDeliveryType(DeliveryType.valueOf(dto.deliveryType()));
-        entity.setSubtotal(dto.subtotal());
-        entity.setShippingCost(dto.shippingCost());
-        entity.setDiscount(dto.discount());
-        entity.setTotal(dto.total());
-
-        // Asignar customer
-        if (dto.customerId() != null) {
-            CustomerEntity customer = customerRepository.findById(dto.customerId())
-                    .orElseThrow(() -> new EntityNotFoundException("Customer not found with id: " + dto.customerId()));
-            entity.setCustomer(customer);
-        }
-
-        // Asignar shippingAddress si existe
-        if (dto.shippingAddressId() != null) {
-            AddressEntity address = addressRepository.findById(dto.shippingAddressId())
-                    .orElseThrow(() -> new EntityNotFoundException("Address not found with id: " + dto.shippingAddressId()));
-            entity.setShippingAddress(address);
-        }
-
-        // Ignorar items por ahora
-
-        OrderEntity saved = orderRepository.save(entity);
-        return orderMapper.toDto(saved);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public OrderDto findById(Long id) {
+    public OrderDto getOrderById(Long id) {
         OrderEntity entity = orderRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Order not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada con ID: " + id));
+
+        forceLoadLazyCollections(entity); // <--- Código reutilizado
         return orderMapper.toDto(entity);
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<OrderDto> findAll() {
-        return orderRepository.findAll().stream()
-                .map(orderMapper::toDto)
-                .toList();
-    }
-
-    @Override
-    public OrderDto update(Long id, OrderDto dto) {
+    @Transactional // 2. Excepción: Este método SÍ escribe en BD
+    public OrderDto updateStatus(Long id, OrderStatus newStatus) {
         OrderEntity entity = orderRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Order not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada con ID: " + id));
 
-        // Actualizar campos simples
-        entity.setCode(dto.code());
-        entity.setStatus(OrderStatus.valueOf(dto.status()));
-        entity.setDeliveryType(DeliveryType.valueOf(dto.deliveryType()));
-        entity.setSubtotal(dto.subtotal());
-        entity.setShippingCost(dto.shippingCost());
-        entity.setDiscount(dto.discount());
-        entity.setTotal(dto.total());
+        validateStatusTransition(entity.getStatus(), newStatus);
 
-        // Actualizar customer
-        if (dto.customerId() != null) {
-            CustomerEntity customer = customerRepository.findById(dto.customerId())
-                    .orElseThrow(() -> new EntityNotFoundException("Customer not found with id: " + dto.customerId()));
-            entity.setCustomer(customer);
-        }
-
-        // Actualizar shippingAddress
-        if (dto.shippingAddressId() != null) {
-            AddressEntity address = addressRepository.findById(dto.shippingAddressId())
-                    .orElseThrow(() -> new EntityNotFoundException("Address not found with id: " + dto.shippingAddressId()));
-            entity.setShippingAddress(address);
-        } else {
-            entity.setShippingAddress(null);
-        }
-
-        // No modificar items aún
-
+        entity.setStatus(newStatus);
         OrderEntity updated = orderRepository.save(entity);
+
+        forceLoadLazyCollections(updated); // <--- Código reutilizado
         return orderMapper.toDto(updated);
     }
 
-    @Override
-    public void delete(Long id) {
-        if (!orderRepository.existsById(id)) {
-            throw new EntityNotFoundException("Order not found with id: " + id);
+    /**
+     * Método helper para inicializar los Proxies de Hibernate
+     * Centraliza la lógica de "hidratación" para evitar duplicidad.
+     */
+    private void forceLoadLazyCollections(OrderEntity entity) {
+        if (entity.getCustomer() != null) {
+            entity.getCustomer().getFirstName();
         }
-        orderRepository.deleteById(id);
+        if (entity.getShippingAddress() != null) {
+            entity.getShippingAddress().getAddressLine();
+        }
+        if (entity.getItems() != null) {
+            // Inicializamos la colección y también accedemos al producto interno
+            entity.getItems().forEach(item -> {
+                if (item.getProduct() != null) {
+                    item.getProduct().getName();
+                }
+            });
+        }
+        if (entity.getInvoice() != null) {
+            entity.getInvoice().getSerie();
+        }
+        if (entity.getPayments() != null) {
+            entity.getPayments().forEach(PaymentEntity::getAmount);
+        }
+    }
+
+    /**
+     * Valida la transición de estados según el flujo de negocio del Ecommerce.
+     * Regla general: El flujo es progresivo y no se puede retroceder, excepto para cancelar.
+     */
+    private void validateStatusTransition(OrderStatus currentStatus, OrderStatus newStatus) {
+        // 1. Si el estado es el mismo, no hay nada que validar
+        if (currentStatus == newStatus) {
+            return;
+        }
+
+        // 2. Regla de Estados Finales: Una vez terminado, no se toca.
+        if (currentStatus == OrderStatus.CANCELADO || currentStatus == OrderStatus.ENTREGADO) {
+            throw new IllegalStateException(
+                    String.format("La orden ya está finalizada (%s) y no se puede modificar.", currentStatus));
+        }
+
+        // 3. Máquina de Estados: Definimos qué caminos son válidos
+        boolean isValid = switch (currentStatus) {
+            case PENDIENTE ->
+                // De Pendiente solo puede pasar a Confirmado (pagó) o Cancelado (se arrepintió)
+                    (newStatus == OrderStatus.CONFIRMADO || newStatus == OrderStatus.CANCELADO);
+            case CONFIRMADO ->
+                // De Confirmado sigue Preparando (almacén) o Cancelado (reembolso)
+                    (newStatus == OrderStatus.PREPARANDO || newStatus == OrderStatus.CANCELADO);
+            case PREPARANDO ->
+                // De Preparando sigue Enviado (courier) o Cancelado (restock necesario)
+                    (newStatus == OrderStatus.ENVIADO || newStatus == OrderStatus.CANCELADO);
+            case ENVIADO ->
+                // De Enviado solo puede pasar a Entregado.
+                // (Opcional: Se podría permitir Cancelado si el paquete se perdió, depende de tu regla)
+                    (newStatus == OrderStatus.ENTREGADO || newStatus == OrderStatus.CANCELADO);
+            default -> false;
+        };
+
+        if (!isValid) {
+            throw new IllegalArgumentException(
+                    String.format("Transición de estado inválida: No se puede pasar de %s a %s.",
+                            currentStatus, newStatus));
+        }
     }
 }
-

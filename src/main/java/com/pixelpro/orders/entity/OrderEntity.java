@@ -1,5 +1,7 @@
 package com.pixelpro.orders.entity;
 
+import com.pixelpro.billing.entity.InvoiceEntity;
+import com.pixelpro.billing.entity.PaymentEntity;
 import com.pixelpro.common.entity.AuditableEntity;
 import com.pixelpro.customers.entity.AddressEntity;
 import com.pixelpro.customers.entity.CustomerEntity;
@@ -49,7 +51,7 @@ public class OrderEntity extends AuditableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "shipping_address_id")
-    private AddressEntity shippingAddress; // puede ser null si es STORE_PICKUP
+    private AddressEntity shippingAddress; // puede ser null si es RECOJO_EN_TIENDA
 
     @NotNull
     @Column(nullable = false, precision = 10, scale = 2)
@@ -72,4 +74,11 @@ public class OrderEntity extends AuditableEntity {
             orphanRemoval = true)
     @Builder.Default
     private List<OrderItemEntity> items = new ArrayList<>();
+
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL)
+    private InvoiceEntity invoice;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<PaymentEntity> payments = new ArrayList<>();
 }
