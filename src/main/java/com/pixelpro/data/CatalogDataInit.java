@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 
 @Component
-@Order(3)
+@Order(2)
 @RequiredArgsConstructor
 public class CatalogDataInit implements CommandLineRunner {
 

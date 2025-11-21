@@ -64,17 +64,14 @@ public class CustomerDataInit implements CommandLineRunner {
             AddressEntity a = buildAddress(c);
             c.getAddresses().add(a);
 
-            // 🔹 Crear cuenta de usuario (solo para algunos)
-            if (Math.random() < 0.5) { // 50% de los clientes tendrán cuenta
-
-                UserEntity user = userService.register(
-                        c.getEmail(),
-                        "123456",
-                        RoleEnum.CUSTOMER
-                );
-                c.setUserAccount(user);
-                c.setEmail(user.getEmail());
-            }
+            // 🔹 Crear cuenta de usuario
+            UserEntity user = userService.register(
+                    c.getEmail(),
+                    "123456",
+                    RoleEnum.CUSTOMER
+            );
+            c.setUserAccount(user);
+            c.setEmail(user.getEmail());
 
             customers.add(c);
         }
