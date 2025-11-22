@@ -106,16 +106,10 @@ public class AdminProductController {
     @GetMapping
     public ResponseEntity<Page<ProductDto>> findAll(
             @Parameter(
-                    description = "Filtro por nombre del producto (búsqueda parcial, insensible a mayúsculas)",
+                    description = "Término de búsqueda global que filtra por nombre o SKU del producto (búsqueda parcial, insensible a mayúsculas)",
                     example = "laptop"
             )
-            @RequestParam(required = false) String name,
-
-            @Parameter(
-                    description = "Filtro por código SKU (búsqueda parcial, insensible a mayúsculas)",
-                    example = "LAP"
-            )
-            @RequestParam(required = false) String sku,
+            @RequestParam(required = false) String search,
 
             @Parameter(
                     description = "Filtro por estado del producto (coincidencia exacta)",
@@ -137,7 +131,7 @@ public class AdminProductController {
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable
     ) {
-        Page<ProductDto> products = productService.findAll(name, sku, status, categoryId, pageable);
+        Page<ProductDto> products = productService.findAll(search, status, categoryId, pageable);
         return ResponseEntity.ok(products);
     }
 

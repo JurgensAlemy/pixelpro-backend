@@ -12,14 +12,16 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
 
     @Query("""
             SELECT p FROM ProductEntity p
-            WHERE (COALESCE(:name, '') = '' OR LOWER(p.name) LIKE LOWER(CONCAT('%', :name, '%')))
-            AND (COALESCE(:sku, '') = '' OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :sku, '%')))
+            WHERE (
+                :search IS NULL OR :search = '' OR
+                LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) OR
+                LOWER(p.sku) LIKE LOWER(CONCAT('%', :search, '%'))
+            )
             AND (COALESCE(:status, '') = '' OR p.status = :status)
             AND (:categoryId IS NULL OR p.category.id = :categoryId)
             """)
     Page<ProductEntity> findByFilters(
-            @Param("name") String name,
-            @Param("sku") String sku,
+            @Param("search") String search,
             @Param("status") String status,
             @Param("categoryId") Long categoryId,
             Pageable pageable

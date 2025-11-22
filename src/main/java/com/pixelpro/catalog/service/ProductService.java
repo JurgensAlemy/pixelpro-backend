@@ -11,7 +11,7 @@ public interface ProductService {
 
     ProductDto findById(Long id);
 
-    Page<ProductDto> findAll(String name, String sku, String status, Long categoryId, Pageable pageable);
+    Page<ProductDto> findAll(String search, String status, Long categoryId, Pageable pageable);
 
     ProductDto update(Long id, ProductUpdateDto dto);
 

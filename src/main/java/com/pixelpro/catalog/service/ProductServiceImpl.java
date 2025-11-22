@@ -45,8 +45,8 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public Page<ProductDto> findAll(String name, String sku, String status, Long categoryId, Pageable pageable) {
-        Page<ProductEntity> products = productRepository.findByFilters(name, sku, status, categoryId, pageable);
+    public Page<ProductDto> findAll(String search, String status, Long categoryId, Pageable pageable) {
+        Page<ProductEntity> products = productRepository.findByFilters(search, status, categoryId, pageable);
         return products.map(productMapper::toDto);
     }
 
