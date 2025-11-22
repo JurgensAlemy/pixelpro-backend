@@ -13,6 +13,8 @@ import com.pixelpro.orders.entity.OrderItemEntity;
 import com.pixelpro.orders.entity.enums.DeliveryType;
 import com.pixelpro.orders.entity.enums.OrderStatus;
 import com.pixelpro.orders.repository.OrderRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
@@ -32,6 +34,10 @@ public class OrderDataInit implements CommandLineRunner {
     private final CustomerRepository customerRepository;
     private final ProductRepository productRepository;
 
+    // Inyectamos EntityManager para manipular la BD directamente y saltarnos el Auditing
+    @PersistenceContext
+    private EntityManager entityManager;
+
     @Override
     @Transactional
     public void run(String... args) {
@@ -40,43 +46,42 @@ public class OrderDataInit implements CommandLineRunner {
             return;
         }
 
-        System.out.println("🚀 Cargando Órdenes (Últimos 14 días)...");
+        System.out.println("🚀 Cargando Órdenes Históricas (Últimos 14 días)...");
 
         List<CustomerEntity> customers = customerRepository.findAll();
         List<ProductEntity> products = productRepository.findAll();
 
         if (customers.isEmpty() || products.isEmpty()) return;
 
-        List<OrderEntity> ordersToSave = new ArrayList<>();
         Random random = new Random();
+        int totalOrders = 0;
 
+        // Procesamos una por una para poder aplicar el "hack" de fechas inmediatamente
         for (CustomerEntity customer : customers) {
+            // Entre 1 y 3 órdenes por cliente para variedad
             int ordersCount = random.nextInt(3) + 1;
 
             for (int i = 0; i < ordersCount; i++) {
                 int scenario = random.nextInt(10);
-                ordersToSave.add(createOrderScenario(customer, products, random, scenario));
+                createAndHackOrder(customer, products, random, scenario);
+                totalOrders++;
             }
         }
 
-        orderRepository.saveAll(ordersToSave);
-        System.out.println("✅ Carga completa: " + ordersToSave.size() + " órdenes creadas.");
+        System.out.println("✅ Carga completa: " + totalOrders + " órdenes creadas con fechas distribuidas.");
     }
 
-    private OrderEntity createOrderScenario(CustomerEntity customer, List<ProductEntity> products, Random random, int scenario) {
-        // --- CORRECCIÓN DE FECHAS ---
-        // 1. Generamos días atrás entre 0 y 13 (para estar dentro de los 14 días)
+    private void createAndHackOrder(CustomerEntity customer, List<ProductEntity> products, Random random, int scenario) {
+        // --- 1. GENERACIÓN DE FECHA RETROACTIVA ---
+        // Generamos una fecha aleatoria dentro de los últimos 14 días
         int daysAgo = random.nextInt(14);
-
-        // 2. Generamos horas atrás (mínimo 1 hora para dar margen a la factura)
-        // Esto evita que si sale "hoy", la factura (hoy + 5min) caiga en el futuro.
         int hoursAgo = random.nextInt(20) + 1;
 
         LocalDateTime date = LocalDateTime.now()
                 .minusDays(daysAgo)
-                .minusHours(hoursAgo); // Siempre restamos al menos 1 hora respecto a "ahora"
+                .minusHours(hoursAgo);
 
-        // Configurar Envío
+        // --- 2. LÓGICA DE NEGOCIO (Construcción de Entidades) ---
         boolean isDelivery = random.nextBoolean();
         DeliveryType deliveryType = isDelivery ? DeliveryType.A_DOMICILIO : DeliveryType.RECOJO_EN_TIENDA;
         AddressEntity address = (isDelivery && !customer.getAddresses().isEmpty())
@@ -86,29 +91,25 @@ public class OrderDataInit implements CommandLineRunner {
         if (address == null) deliveryType = DeliveryType.RECOJO_EN_TIENDA;
         BigDecimal shippingCost = (deliveryType == DeliveryType.A_DOMICILIO) ? new BigDecimal("15.00") : BigDecimal.ZERO;
 
-        // Determinar Estados
         OrderStatus orderStatus;
         PaymentStatus paymentStatus;
         boolean generateInvoice;
 
-        if (scenario == 0 || scenario == 1) {
-            // Fallo (20%)
+        if (scenario == 0 || scenario == 1) { // 20% Fallo/Cancelado
             orderStatus = OrderStatus.CANCELADO;
             paymentStatus = PaymentStatus.RECHAZADO;
             generateInvoice = false;
-        } else if (scenario == 2) {
-            // Pendiente (10%)
+        } else if (scenario == 2) { // 10% Pendiente
             orderStatus = OrderStatus.PENDIENTE;
             paymentStatus = PaymentStatus.PENDIENTE;
             generateInvoice = false;
-        } else {
-            // Éxito (70%)
+        } else { // 70% Éxito
             orderStatus = getRandomSuccessStatus(random);
             paymentStatus = PaymentStatus.CONFIRMADO;
             generateInvoice = true;
         }
 
-        // Construir Orden
+        // 2.1 Construir Orden
         OrderEntity order = OrderEntity.builder()
                 .code("ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
                 .status(orderStatus)
@@ -118,9 +119,9 @@ public class OrderDataInit implements CommandLineRunner {
                 .shippingCost(shippingCost)
                 .discount(BigDecimal.ZERO)
                 .build();
-        order.setCreatedAt(date);
+        // Nota: order.setCreatedAt(date) sería ignorado por JPA aquí, por eso usamos el hack más abajo.
 
-        // Items
+        // 2.2 Items
         List<OrderItemEntity> items = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;
         List<ProductEntity> shuffled = new ArrayList<>(products);
@@ -143,7 +144,7 @@ public class OrderDataInit implements CommandLineRunner {
         order.setSubtotal(subtotal);
         order.setTotal(subtotal.add(shippingCost));
 
-        // Pago
+        // 2.3 Pago
         PaymentEntity payment = PaymentEntity.builder()
                 .amount(order.getTotal())
                 .currency(CurrencyCode.PEN)
@@ -154,20 +155,18 @@ public class OrderDataInit implements CommandLineRunner {
                 .build();
 
         if (paymentStatus == PaymentStatus.CONFIRMADO) {
-            // Pago ocurre 2 mins después de la orden
+            // Usamos LocalDateTime directo (2 minutos después de la fecha generada)
             payment.setPaidAt(date.plusMinutes(2));
         }
-
         order.setPayments(new ArrayList<>(List.of(payment)));
 
-        // Factura
+        // 2.4 Factura
         if (generateInvoice) {
             InvoiceEntity invoice = InvoiceEntity.builder()
                     .type(InvoiceType.BOLETA)
                     .serie("B001")
                     .number(String.format("%08d", random.nextInt(999999)))
-                    // Factura 5 mins después de la orden.
-                    // Como 'date' tiene al menos 1 hora de antigüedad, esto SIEMPRE es pasado.
+                    // Usamos LocalDateTime directo (5 minutos después de la fecha generada)
                     .issuedAt(date.plusMinutes(5))
                     .totalAmount(order.getTotal())
                     .currency(CurrencyCode.PEN)
@@ -179,7 +178,32 @@ public class OrderDataInit implements CommandLineRunner {
             order.setInvoice(invoice);
         }
 
-        return order;
+        // --- 3. PERSISTENCIA Y HACK DE FECHAS (TIME TRAVEL) ---
+
+        // A. Guardar con JPA (Pondrá created_at = HOY por el @CreatedDate)
+        orderRepository.save(order);
+
+        // B. UPDATE Nativo para sobrescribir la fecha en la tabla 'orders'
+        entityManager.createNativeQuery("UPDATE orders SET created_at = :date WHERE id = :id")
+                .setParameter("date", date)
+                .setParameter("id", order.getId())
+                .executeUpdate();
+
+        // C. UPDATE Nativo para sobrescribir la fecha en 'invoices' (si existe)
+        if (order.getInvoice() != null) {
+            entityManager.createNativeQuery("UPDATE invoices SET created_at = :date WHERE id = :id")
+                    .setParameter("date", date)
+                    .setParameter("id", order.getInvoice().getId())
+                    .executeUpdate();
+        }
+
+        // D. UPDATE Nativo para sobrescribir la fecha en 'payments'
+        for (PaymentEntity p : order.getPayments()) {
+            entityManager.createNativeQuery("UPDATE payments SET created_at = :date WHERE id = :id")
+                    .setParameter("date", date)
+                    .setParameter("id", p.getId())
+                    .executeUpdate();
+        }
     }
 
     private OrderStatus getRandomSuccessStatus(Random random) {
