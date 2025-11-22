@@ -9,6 +9,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+
 public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
 
     /**
@@ -32,5 +36,40 @@ public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
             @Param("status") OrderStatus status,
             @Param("deliveryType") DeliveryType deliveryType,
             Pageable pageable
+    );
+
+    // ==================== MÉTODOS PARA DASHBOARD ====================
+
+    /**
+     * Cuenta órdenes por estado
+     */
+    long countByStatus(OrderStatus status);
+
+    /**
+     * Suma el total de órdenes por lista de estados
+     *
+     * @param statuses Lista de estados de las órdenes a sumar
+     * @return Suma total o 0 si no hay órdenes (BigDecimal para preservar precisión)
+     */
+    @Query("SELECT COALESCE(SUM(o.total), 0) FROM OrderEntity o WHERE o.status IN :statuses")
+    BigDecimal sumTotalByStatuses(@Param("statuses") List<OrderStatus> statuses);
+
+    /**
+     * Obtiene las ventas agrupadas por fecha en un rango específico
+     *
+     * @param statuses Lista de estados de orden a considerar
+     * @param start    Fecha inicial
+     * @param end      Fecha final
+     * @return Lista de arrays [fecha, total] ordenados por fecha
+     */
+    @Query("SELECT CAST(o.createdAt AS LocalDate), SUM(o.total) " +
+            "FROM OrderEntity o " +
+            "WHERE o.status IN :statuses AND o.createdAt BETWEEN :start AND :end " +
+            "GROUP BY CAST(o.createdAt AS LocalDate) " +
+            "ORDER BY CAST(o.createdAt AS LocalDate) ASC")
+    List<Object[]> getSalesByDateRange(
+            @Param("statuses") List<OrderStatus> statuses,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
     );
 }
