@@ -1,5 +1,6 @@
 package com.pixelpro.dashboard.dto;
 
+import com.pixelpro.orders.dto.OrderDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
@@ -29,7 +30,10 @@ public record DashboardStatsDto(
         List<ChartDataPointDto> salesChartData,
 
         @Schema(description = "Top 5 productos más vendidos")
-        List<TopProductDto> topProducts
+        List<TopProductDto> topProducts,
+
+        @Schema(description = "Últimas 5 órdenes creadas en el sistema")
+        List<OrderDto> latestOrders
 ) {
 }
 

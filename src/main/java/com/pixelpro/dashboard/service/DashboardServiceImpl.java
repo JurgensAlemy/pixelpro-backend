@@ -6,12 +6,17 @@ import com.pixelpro.dashboard.dto.ChartDataPointDto;
 import com.pixelpro.dashboard.dto.DashboardStatsDto;
 import com.pixelpro.dashboard.dto.TopProductDto;
 import com.pixelpro.dashboard.projection.TopProductProjection;
+import com.pixelpro.orders.dto.OrderDto;
+import com.pixelpro.orders.entity.OrderEntity;
 import com.pixelpro.orders.entity.enums.OrderStatus;
+import com.pixelpro.orders.mapper.OrderMapper;
 import com.pixelpro.orders.repository.OrderItemRepository;
 import com.pixelpro.orders.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,10 +39,12 @@ public class DashboardServiceImpl implements DashboardService {
     private final OrderItemRepository orderItemRepository;
     private final ProductRepository productRepository;
     private final CustomerRepository customerRepository;
+    private final OrderMapper orderMapper;
 
     private static final DateTimeFormatter CHART_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM");
     private static final int CHART_DAYS = 14;
     private static final int TOP_PRODUCTS_LIMIT = 5;
+    private static final int LATEST_ORDERS_LIMIT = 5;
 
     /**
      * Estados de orden que se consideran como "ventas confirmadas/pagadas".
@@ -74,6 +81,9 @@ public class DashboardServiceImpl implements DashboardService {
         // 4. Top 5 productos más vendidos
         List<TopProductDto> topProducts = getTopProducts();
 
+        // 5. Últimas 5 órdenes
+        List<OrderDto> latestOrders = getLatestOrders();
+
         log.info("Estadísticas calculadas: {} órdenes, {} clientes, ingresos: {}",
                 totalOrders, totalCustomers, totalRevenue);
 
@@ -85,7 +95,8 @@ public class DashboardServiceImpl implements DashboardService {
                 totalProducts,
                 totalCustomers,
                 salesChartData,
-                topProducts
+                topProducts,
+                latestOrders
         );
     }
 
@@ -145,6 +156,54 @@ public class DashboardServiceImpl implements DashboardService {
                         p.getRevenue() != null ? p.getRevenue() : BigDecimal.ZERO
                 ))
                 .toList();
+    }
+
+    /**
+     * Obtiene las últimas N órdenes creadas en el sistema
+     * Ordena por fecha de creación descendente
+     */
+    private List<OrderDto> getLatestOrders() {
+        PageRequest pageRequest = PageRequest.of(
+                0,
+                LATEST_ORDERS_LIMIT,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        Page<OrderEntity> ordersPage = orderRepository.findAll(pageRequest);
+
+        return ordersPage.getContent().stream()
+                .map(entity -> {
+                    // Forzar la carga de colecciones lazy para evitar LazyInitializationException
+                    forceLoadLazyCollections(entity);
+                    return orderMapper.toDto(entity);
+                })
+                .toList();
+    }
+
+    /**
+     * Método helper para inicializar los Proxies de Hibernate
+     * Evita LazyInitializationException al acceder a relaciones lazy fuera del contexto transaccional
+     */
+    private void forceLoadLazyCollections(OrderEntity entity) {
+        if (entity.getCustomer() != null) {
+            entity.getCustomer().getFirstName();
+        }
+        if (entity.getShippingAddress() != null) {
+            entity.getShippingAddress().getAddressLine();
+        }
+        if (entity.getItems() != null) {
+            entity.getItems().forEach(item -> {
+                if (item.getProduct() != null) {
+                    item.getProduct().getName();
+                }
+            });
+        }
+        if (entity.getInvoice() != null) {
+            entity.getInvoice().getSerie();
+        }
+        if (entity.getPayments() != null) {
+            entity.getPayments().forEach(payment -> payment.getAmount());
+        }
     }
 }
 
