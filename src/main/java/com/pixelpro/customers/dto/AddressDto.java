@@ -2,6 +2,8 @@ package com.pixelpro.customers.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.time.LocalDateTime;
+
 @Schema(description = "Dirección de envío")
 public record AddressDto(
         @Schema(description = "ID de la dirección", example = "1")
@@ -26,7 +28,13 @@ public record AddressDto(
         String addressReference,
 
         @Schema(description = "Teléfono de contacto", example = "987654321")
-        String addressPhone
+        String addressPhone,
+
+        @Schema(description = "Fecha de creación", example = "2024-01-15T10:30:00")
+        LocalDateTime createdAt,
+
+        @Schema(description = "Fecha de última actualización", example = "2024-01-15T10:30:00")
+        LocalDateTime updatedAt
 ) {
 }
 

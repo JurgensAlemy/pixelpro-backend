@@ -2,6 +2,9 @@ package com.pixelpro.customers.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 @Schema(description = "Información del cliente")
 public record CustomerDto(
         @Schema(description = "ID del cliente", example = "1")
@@ -23,7 +26,19 @@ public record CustomerDto(
         String documentType,
 
         @Schema(description = "Número de documento", example = "12345678")
-        String documentNumber
+        String documentNumber,
+
+        @Schema(description = "Tipo de cliente", example = "NATURAL")
+        String customerType,
+
+        @Schema(description = "Fecha de creación", example = "2024-01-15T10:30:00")
+        LocalDateTime createdAt,
+
+        @Schema(description = "Fecha de última actualización", example = "2024-01-15T10:30:00")
+        LocalDateTime updatedAt,
+
+        @Schema(description = "Lista de direcciones del cliente")
+        List<AddressDto> addresses
 ) {
 }
 
