@@ -20,13 +20,8 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
@@ -39,8 +34,8 @@ public class AuthController {
     private final UserService userService;
     private final UserRepository userRepository;
 
-    // Esta es la llave que Spring usa para buscar la sesión
-    public static final String SPRING_SECURITY_CONTEXT_KEY = HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
+    public static final String SPRING_SECURITY_CONTEXT_KEY =
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
 
     @Operation(summary = "Registrar nuevo usuario", description = "Crea un nuevo usuario y lo autentica")
     @PostMapping("/register")
@@ -53,20 +48,14 @@ public class AuthController {
                 new UsernamePasswordAuthenticationToken(req.email(), req.password())
         );
 
-        // --- 1. CORRECCIÓN EN REGISTER ---
-        // ¡Creamos un contexto NUEVO, no usamos el viejo!
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(auth);
-
         HttpSession session = httpReq.getSession(true);
-        session.setAttribute(SPRING_SECURITY_CONTEXT_KEY, context); // Usamos la llave correcta
-        // --- FIN DE LA CORRECCIÓN ---
+        session.setAttribute(SPRING_SECURITY_CONTEXT_KEY, context);
 
-        Set<String> roles = auth.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.toSet());
+        String rol = getCleanRole(auth);
 
-        return ResponseEntity.ok(new AuthResponse(u.getId(), u.getEmail(), roles, true));
+        return ResponseEntity.ok(new AuthResponse(u.getId(), u.getEmail(), rol, true));
     }
 
     @PostMapping("/login")
@@ -79,37 +68,38 @@ public class AuthController {
                 new UsernamePasswordAuthenticationToken(req.email(), req.password())
         );
 
-        // --- 2. CORRECCIÓN EN LOGIN ---
-        // ¡Creamos un contexto NUEVO, no usamos el viejo!
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(auth);
-
         HttpSession session = httpReq.getSession(true);
-        session.setAttribute(SPRING_SECURITY_CONTEXT_KEY, context); // Usamos la llave correcta
-        // --- FIN DE LA CORRECCIÓN ---
+        session.setAttribute(SPRING_SECURITY_CONTEXT_KEY, context);
 
         UserEntity user = userRepository.findByEmail(req.email()).orElseThrow();
-        Set<String> roles = auth.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.toSet());
 
-        return ResponseEntity.ok(new AuthResponse(user.getId(), user.getEmail(), roles, true));
+        String rol = getCleanRole(auth);
+
+        return ResponseEntity.ok(new AuthResponse(user.getId(), user.getEmail(), rol, true));
     }
 
-    // Tu método /me está perfecto, no lo toques
     @GetMapping("/me")
     @Operation(summary = "Información del usuario", description = "Obtiene la información del usuario autenticado")
     public ResponseEntity<AuthResponse> me() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
-            return ResponseEntity.ok(new AuthResponse(null, null, Set.of(), false));
+            return ResponseEntity.ok(new AuthResponse(null, null, null, false));
         }
         String email = auth.getName();
         UserEntity user = userRepository.findByEmail(email).orElse(null);
-        Set<String> roles = auth.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.toSet());
+
+        String rol = getCleanRole(auth);
+
         Long id = user != null ? user.getId() : null;
-        return ResponseEntity.ok(new AuthResponse(id, email, roles, true));
+        return ResponseEntity.ok(new AuthResponse(id, email, rol, true));
+    }
+
+    private String getCleanRole(Authentication auth) {
+        return auth.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .map(role -> role.replace("ROLE_", "")) // Quitamos el prefijo
+                .collect(Collectors.joining(""));
     }
 }

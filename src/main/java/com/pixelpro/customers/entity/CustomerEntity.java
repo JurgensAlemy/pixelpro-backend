@@ -1,11 +1,9 @@
 package com.pixelpro.customers.entity;
 
+import com.pixelpro.auth.entity.UserEntity;
 import com.pixelpro.common.entity.AuditableEntity;
 import com.pixelpro.customers.entity.enums.CustomerType;
 import com.pixelpro.customers.entity.enums.DocumentType;
-// --- CAMBIO AQUÍ ---
-import com.pixelpro.auth.entity.UserEntity; // Apunta a la UserEntity de 'auth'
-// --- FIN DE CAMBIO ---
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -65,7 +63,7 @@ public class CustomerEntity extends AuditableEntity {
 
     @OneToOne
     @JoinColumn(name = "user_id")
-    private UserEntity userAccount; // Esta línea ahora funciona porque el import es correcto
+    private UserEntity userAccount;
 
     @OneToMany(mappedBy = "customer",
             cascade = CascadeType.ALL,

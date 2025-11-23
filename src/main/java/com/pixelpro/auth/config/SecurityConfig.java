@@ -1,11 +1,10 @@
 package com.pixelpro.auth.config;
 
-import com.pixelpro.auth.service.UserDetailsServiceImpl; // ¡El import correcto!
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -27,28 +26,34 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final UserDetailsServiceImpl userDetailsService; // ¡La inyección correcta!
+    private final RestAuthenticationEntryPoint unauthorizedHandler;
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         return httpSecurity
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                .cors(cors ->
+                        cors.configurationSource(corsConfigurationSource()))
+                .exceptionHandling(exceptionHandling ->
+                        exceptionHandling.authenticationEntryPoint(unauthorizedHandler))
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
                         // Reglas públicas
-                        .requestMatchers("/api/auth/login", "/api/auth/register")
+                        .requestMatchers("/api/public/**",
+                                "/api/auth/login",
+                                "/api/auth/register",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**")
                         .permitAll()
-                        .requestMatchers("/swagger-ui/*", "/v3/api-docs/", "/api/public/*")
-                        .permitAll()
-
                         // Reglas autenticadas
                         .requestMatchers("/api/auth/logout", "/api/auth/me")
                         .authenticated()
-
-                        // Regla de Admin (DEBE USAR hasRole)
+                        //.permitAll()
+                        // Regla de Admin
                         .requestMatchers("/api/admin/**")
                         .hasRole("ADMIN")
+                        //.permitAll()
                         .anyRequest()
                         .authenticated()
                 )
@@ -57,15 +62,9 @@ public class SecurityConfig {
                         .deleteCookies("JSESSIONID")
                         .clearAuthentication(true)
                         .invalidateHttpSession(true)
+                        .logoutSuccessHandler((req, res, auth)
+                                -> res.setStatus(HttpServletResponse.SC_OK))
                 ).build();
-    }
-
-    @Bean
-    public DaoAuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService); // ¡Usando el servicio correcto!
-        authProvider.setPasswordEncoder(passwordEncoder());
-        return authProvider;
     }
 
     @Bean
@@ -78,13 +77,14 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    // Tu CORS está perfecto
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         var c = new CorsConfiguration();
         c.setAllowedOrigins(List.of(
-                "http://127.0.0.1:5500", "http://127.0.0.1:5501", "http://127.0.0.1:5502", "http://127.0.0.1:4200",
-                "http://localhost:5500", "http://localhost:5501", "http://localhost:5502", "http://localhost:4200"
+                "http://127.0.0.1:5500", "http://127.0.0.1:5501",
+                "http://127.0.0.1:5502", "http://127.0.0.1:4200",
+                "http://localhost:5500", "http://localhost:5501",
+                "http://localhost:5502", "http://localhost:4200"
         ));
         c.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         c.setAllowedHeaders(List.of("*"));

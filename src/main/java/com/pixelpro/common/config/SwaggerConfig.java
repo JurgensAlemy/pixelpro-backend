@@ -12,8 +12,8 @@ public class SwaggerConfig {
     public OpenAPI pixelproOpenApi() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("pixelpro E-Commerce API")
-                        .description("REST API for the pixelpro lingerie e-commerce platform")
+                        .title("Pixelpro E-Commerce API")
+                        .description("API REST para la platforma e-commerce Pixelpro")
                         .version("1.0.0"));
     }
 }

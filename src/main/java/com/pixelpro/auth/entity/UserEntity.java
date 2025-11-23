@@ -1,5 +1,7 @@
 package com.pixelpro.auth.entity;
 
+import com.pixelpro.common.entity.AuditableEntity;
+import com.pixelpro.customers.entity.CustomerEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -10,7 +12,7 @@ import lombok.*;
 @AllArgsConstructor
 @Entity
 @Table(name = "users")
-public class UserEntity {
+public class UserEntity extends AuditableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,7 +28,10 @@ public class UserEntity {
     @Column(nullable = false)
     private boolean enabled = true;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id", nullable = false)
     private RoleEntity role;
+
+    @OneToOne(mappedBy = "userAccount")
+    private CustomerEntity customer;
 }

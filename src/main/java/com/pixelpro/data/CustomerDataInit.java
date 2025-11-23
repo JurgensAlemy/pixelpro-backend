@@ -68,7 +68,7 @@ public class CustomerDataInit implements CommandLineRunner {
             UserEntity user = userService.register(
                     c.getEmail(),
                     "123456",
-                    RoleEnum.CUSTOMER
+                    RoleEnum.CLIENTE
             );
             c.setUserAccount(user);
             c.setEmail(user.getEmail());
