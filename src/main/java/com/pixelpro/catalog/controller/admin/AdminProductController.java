@@ -125,10 +125,10 @@ public class AdminProductController {
             @RequestParam(required = false) Long categoryId,
 
             @Parameter(
-                    description = "Parámetros de paginación y ordenamiento. Por defecto: página 0, tamaño 20, ordenado por createdAt DESC",
+                    description = "Parámetros de paginación y ordenamiento. Por defecto: página 0, tamaño 20, ordenado por updatedAt DESC (última actualización)",
                     example = "page=0&size=10&sort=name,asc"
             )
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
+            @PageableDefault(size = 20, sort = "updatedAt", direction = Sort.Direction.DESC)
             Pageable pageable
     ) {
         Page<ProductDto> products = productService.findAll(search, status, categoryId, pageable);

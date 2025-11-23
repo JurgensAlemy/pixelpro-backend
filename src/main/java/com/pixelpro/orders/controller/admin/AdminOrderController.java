@@ -63,10 +63,10 @@ public class AdminOrderController {
             @RequestParam(required = false) DeliveryType deliveryType,
 
             @Parameter(
-                    description = "Parámetros de paginación y ordenamiento. Por defecto: página 0, tamaño 10, ordenado por createdAt DESC",
+                    description = "Parámetros de paginación y ordenamiento. Por defecto: página 0, tamaño 10, ordenado por updatedAt DESC (última actualización)",
                     example = "page=0&size=10&sort=code,asc"
             )
-            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC)
+            @PageableDefault(sort = "updatedAt", direction = Sort.Direction.DESC)
             Pageable pageable
     ) {
         Page<OrderDto> orders = orderService.getAllOrders(search, status, deliveryType, pageable);
