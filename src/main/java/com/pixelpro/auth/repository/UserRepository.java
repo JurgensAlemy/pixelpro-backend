@@ -17,10 +17,12 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
     @Query("SELECT u FROM UserEntity u WHERE " +
             "(:role IS NULL OR u.role.roleName = :role) AND " +
-            "(:search IS NULL OR :search = '' OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')))")
+            "(:search IS NULL OR :search = '' OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))) AND " +
+            "(:staffOnly IS NULL OR :staffOnly = false OR u.role.roleName != 'CLIENTE')")
     Page<UserEntity> findAllWithFilters(
             @Param("role") RoleEnum role,
             @Param("search") String search,
+            @Param("staffOnly") Boolean staffOnly,
             Pageable pageable
     );
 }

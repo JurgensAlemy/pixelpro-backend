@@ -58,9 +58,8 @@ public class UserService {
     // ============ ADMIN METHODS ============
 
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public Page<UserDto> getAllUsers(RoleEnum role, String search, Pageable pageable) {
-        Page<UserEntity> users = userRepository.findAllWithFilters(role, search, pageable);
-
+    public Page<UserDto> getAllUsers(RoleEnum role, String search, Boolean staffOnly, Pageable pageable) {
+        Page<UserEntity> users = userRepository.findAllWithFilters(role, search, staffOnly, pageable);
         return users.map(userMapper::toDto);
     }
 
@@ -121,5 +120,11 @@ public class UserService {
 
     public List<RoleEnum> getAllRoles() {
         return Arrays.asList(RoleEnum.values());
+    }
+
+    public List<RoleEnum> getStaffRoles() {
+        return Arrays.stream(RoleEnum.values())
+                .filter(role -> role != RoleEnum.CLIENTE)
+                .toList();
     }
 }

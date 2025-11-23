@@ -36,7 +36,7 @@ public class AdminUserController {
 
     @Operation(
             summary = "Listar todos los usuarios",
-            description = "Obtiene un listado paginado de todos los usuarios del sistema con su información básica y rol asignado. Los resultados se ordenan por fecha de creación descendente por defecto. Permite filtrar por rol (ADMIN/CLIENTE) y buscar por email."
+            description = "Obtiene un listado paginado de todos los usuarios del sistema con su información básica y rol asignado. Los resultados se ordenan por última actualización descendente por defecto. Permite filtrar por rol (ADMIN/CLIENTE), buscar por email y filtrar solo personal administrativo (excluye clientes)."
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -60,13 +60,19 @@ public class AdminUserController {
             @RequestParam(required = false) String search,
 
             @Parameter(
+                    description = "Si es true, muestra solo personal administrativo (excluye usuarios con rol CLIENTE). Por defecto: false (muestra todos los usuarios)",
+                    example = "true"
+            )
+            @RequestParam(defaultValue = "false") Boolean staffOnly,
+
+            @Parameter(
                     description = "Parámetros de paginación y ordenamiento. Por defecto: página 0, tamaño 20, ordenado por updatedAt DESC (última actualización)",
                     example = "page=0&size=10&sort=email,asc"
             )
             @PageableDefault(size = 20, sort = "updatedAt", direction = Sort.Direction.DESC)
             Pageable pageable
     ) {
-        Page<UserDto> users = userService.getAllUsers(role, search, pageable);
+        Page<UserDto> users = userService.getAllUsers(role, search, staffOnly, pageable);
         return ResponseEntity.ok(users);
     }
 
@@ -244,6 +250,23 @@ public class AdminUserController {
     public ResponseEntity<List<RoleEnum>> getAllRoles() {
         List<RoleEnum> roles = userService.getAllRoles();
         return ResponseEntity.ok(roles);
+    }
+
+    @Operation(
+            summary = "Obtener lista de roles de personal administrativo",
+            description = "Retorna la lista de roles disponibles para el personal administrativo del sistema, excluyendo el rol CLIENTE. Este endpoint es útil para formularios de gestión de staff donde no se debe permitir asignar el rol de cliente."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Lista de roles de staff obtenida exitosamente",
+                    content = @Content(schema = @Schema(implementation = List.class))
+            )
+    })
+    @GetMapping("/roles/staff")
+    public ResponseEntity<List<RoleEnum>> getStaffRoles() {
+        List<RoleEnum> staffRoles = userService.getStaffRoles();
+        return ResponseEntity.ok(staffRoles);
     }
 }
 

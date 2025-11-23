@@ -3,17 +3,15 @@ package com.pixelpro.catalog.service;
 import com.pixelpro.catalog.dto.CategoryCreateDto;
 import com.pixelpro.catalog.dto.CategoryDto;
 import com.pixelpro.catalog.dto.CategoryUpdateDto;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface CategoryService {
-    CategoryDto create(CategoryCreateDto dto);
+    Page<CategoryDto> findAll(Long parentId, Pageable pageable);
 
     CategoryDto findById(Long id);
 
-    List<CategoryDto> findAll();
-
-    List<CategoryDto> findByParentId(Long parentId);
+    CategoryDto create(CategoryCreateDto dto);
 
     CategoryDto update(Long id, CategoryUpdateDto dto);
 

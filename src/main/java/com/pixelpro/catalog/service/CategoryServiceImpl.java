@@ -9,10 +9,10 @@ import com.pixelpro.catalog.repository.CategoryRepository;
 import com.pixelpro.common.exception.ConflictException;
 import com.pixelpro.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +20,25 @@ import java.util.List;
 public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
+
+    @Override
+    public Page<CategoryDto> findAll(Long parentId, Pageable pageable) {
+        Page<CategoryEntity> categories;
+        // Lógica simplificada: Si hay filtro, busca hijos. Si no, trae todo el catálogo paginado.
+        if (parentId != null) {
+            categories = categoryRepository.findByParentCategoryId(parentId, pageable);
+        } else {
+            categories = categoryRepository.findAll(pageable);
+        }
+        return categories.map(categoryMapper::toDto);
+    }
+
+    @Override
+    public CategoryDto findById(Long id) {
+        CategoryEntity category = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
+        return categoryMapper.toDto(category);
+    }
 
     @Override
     @Transactional
@@ -38,43 +57,21 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public CategoryDto findById(Long id) {
-        CategoryEntity category = categoryRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
-        return categoryMapper.toDto(category);
-    }
-
-    @Override
-    public List<CategoryDto> findAll() {
-        return categoryRepository.findAll().stream()
-                .map(categoryMapper::toDto)
-                .toList();
-    }
-
-    @Override
-    public List<CategoryDto> findByParentId(Long parentId) {
-        if (parentId == null) {
-            return categoryRepository.findByParentCategoryIsNull().stream()
-                    .map(categoryMapper::toDto)
-                    .toList();
-        }
-        return categoryRepository.findByParentCategoryId(parentId).stream()
-                .map(categoryMapper::toDto)
-                .toList();
-    }
-
-    @Override
     @Transactional
     public CategoryDto update(Long id, CategoryUpdateDto dto) {
         CategoryEntity category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
+
         if (dto.parentCategoryId() != null) {
+            // Validación de ciclo: Una categoría no puede ser padre de sí misma
             if (dto.parentCategoryId().equals(id)) {
                 throw new ConflictException("A category cannot be its own parent");
             }
             CategoryEntity parentCategory = categoryRepository.findById(dto.parentCategoryId())
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Parent category not found with id: " + dto.parentCategoryId()));
+
+            // Validación de jerarquía: No puedes ser hijo de tu propio descendiente
             if (isDescendant(parentCategory, id)) {
                 throw new ConflictException("Cannot set parent to a descendant category");
             }
@@ -82,6 +79,7 @@ public class CategoryServiceImpl implements CategoryService {
         } else {
             category.setParentCategory(null);
         }
+
         categoryMapper.updateEntityFromDto(dto, category);
         CategoryEntity updated = categoryRepository.save(category);
         return categoryMapper.toDto(updated);
@@ -90,14 +88,18 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional
     public void delete(Long id) {
-        CategoryEntity category = categoryRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
+        if (!categoryRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Category not found with id: " + id);
+        }
+
+        // Validación de integridad: No borrar si tiene productos
         long productCount = categoryRepository.countProductsByCategory(id);
         if (productCount > 0) {
             throw new ConflictException(
                     "Cannot delete category because it is used by " + productCount + " product(s)");
         }
-        categoryRepository.delete(category);
+
+        categoryRepository.deleteById(id);
     }
 
     private boolean isDescendant(CategoryEntity potentialDescendant, Long ancestorId) {
