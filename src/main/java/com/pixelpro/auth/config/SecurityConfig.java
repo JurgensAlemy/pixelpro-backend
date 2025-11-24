@@ -1,6 +1,5 @@
 package com.pixelpro.auth.config;
 
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,6 +13,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -27,6 +27,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final RestAuthenticationEntryPoint unauthorizedHandler;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
@@ -37,7 +38,7 @@ public class SecurityConfig {
                 .exceptionHandling(exceptionHandling ->
                         exceptionHandling.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Reglas públicas
                         .requestMatchers("/api/public/**",
@@ -47,24 +48,16 @@ public class SecurityConfig {
                                 "/v3/api-docs/**")
                         .permitAll()
                         // Reglas autenticadas
-                        .requestMatchers("/api/auth/logout", "/api/auth/me")
+                        .requestMatchers("/api/auth/me")
                         .authenticated()
-                        //.permitAll()
                         // Regla de Admin
                         .requestMatchers("/api/admin/**")
                         .hasRole("ADMIN")
-                        //.permitAll()
                         .anyRequest()
                         .authenticated()
                 )
-                .logout(logout -> logout
-                        .logoutUrl("/api/auth/logout")
-                        .deleteCookies("JSESSIONID")
-                        .clearAuthentication(true)
-                        .invalidateHttpSession(true)
-                        .logoutSuccessHandler((req, res, auth)
-                                -> res.setStatus(HttpServletResponse.SC_OK))
-                ).build();
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .build();
     }
 
     @Bean
