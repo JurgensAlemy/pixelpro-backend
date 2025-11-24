@@ -33,7 +33,8 @@ public class AuthController {
     private final UserRepository userRepository;
     private final JwtService jwtService;
 
-    @Operation(summary = "Registrar nuevo usuario", description = "Crea un nuevo usuario y genera un token JWT")
+    @Operation(summary = "Registrar cuenta de cliente",
+            description = "Crea una nueva cuenta para el usuario final del Ecommerce. Por defecto, asigna el rol CLIENTE y genera un token JWT para el auto-login.")
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest req) {
         UserEntity u = userService.register(req.email(), req.password(), null);

@@ -77,8 +77,10 @@ public class AdminUserController {
     }
 
     @Operation(
-            summary = "Crear nuevo usuario",
-            description = "Permite al administrador crear un nuevo usuario en el sistema. Se debe proporcionar email único, contraseña y rol. El usuario se crea en estado activo por defecto."
+            summary = "Crear cuenta de Staff y/o Usuario Interno",
+            description = "Permite al administrador crear una cuenta interna del sistema," +
+                    " con la capacidad de asignar cualquier rol disponible (ADMIN, CLIENTE, etc.). " +
+                    "Este es el único endpoint para crear cuentas con privilegios elevados (STAFF)."
     )
     @ApiResponses(value = {
             @ApiResponse(
