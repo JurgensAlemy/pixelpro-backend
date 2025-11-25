@@ -88,6 +88,22 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
+    @Override
+    public Page<OrderDto> getMyOrders(String email, OrderStatus status, Pageable pageable) {
+        Page<OrderEntity> orders;
+
+        if (status != null) {
+            orders = orderRepository.findByCustomer_EmailAndStatus(email, status, pageable);
+        } else {
+            orders = orderRepository.findByCustomer_Email(email, pageable);
+        }
+
+        return orders.map(entity -> {
+            forceLoadLazyCollections(entity);
+            return orderMapper.toDto(entity);
+        });
+    }
+
     /**
      * Valida la transición de estados según el flujo de negocio del Ecommerce.
      * Regla general: El flujo es progresivo y no se puede retroceder, excepto para cancelar.

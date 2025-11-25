@@ -72,4 +72,25 @@ public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end
     );
+
+    // ==================== MÉTODOS PARA STORE (CLIENTES) ====================
+
+    /**
+     * Busca órdenes de un cliente específico por su email
+     *
+     * @param email    Email del cliente
+     * @param pageable Configuración de paginación
+     * @return Página de órdenes del cliente
+     */
+    Page<OrderEntity> findByCustomer_Email(String email, Pageable pageable);
+
+    /**
+     * Busca órdenes de un cliente específico por su email y estado
+     *
+     * @param email    Email del cliente
+     * @param status   Estado de la orden
+     * @param pageable Configuración de paginación
+     * @return Página de órdenes del cliente con el estado especificado
+     */
+    Page<OrderEntity> findByCustomer_EmailAndStatus(String email, OrderStatus status, Pageable pageable);
 }

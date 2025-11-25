@@ -35,5 +35,15 @@ public interface OrderService {
      * @return DTO de la orden actualizada
      */
     OrderDto updateStatus(Long id, OrderStatus newStatus);
+
+    /**
+     * Obtiene las órdenes de un cliente específico por su email (para Store)
+     *
+     * @param email    Email del cliente autenticado
+     * @param status   Estado de la orden (opcional)
+     * @param pageable Configuración de paginación
+     * @return Página de órdenes del cliente
+     */
+    Page<OrderDto> getMyOrders(String email, OrderStatus status, Pageable pageable);
 }
 

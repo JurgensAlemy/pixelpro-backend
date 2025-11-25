@@ -40,21 +40,21 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Reglas públicas
-                        .requestMatchers("/api/public/**", "/uploads/**",
-                                "/api/auth/login",
-                                "/api/auth/register",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**")
-                        .permitAll()
-                        // Reglas autenticadas
-                        .requestMatchers("/api/auth/me")
-                        .authenticated()
-                        // Regla de Admin
-                        .requestMatchers("/api/admin/**")
-                        .hasRole("ADMIN")
-                        .anyRequest()
-                        .authenticated()
+                        // 1. Reglas Públicas (Storefront público y Auth)
+                        .requestMatchers(
+                                "/api/public/**", "/uploads/**",
+                                "/api/auth/login", "/api/auth/register",
+                                "/swagger-ui/**", "/v3/api-docs/**"
+                        ).permitAll()
+                        // 2. Reglas del Storefront Privado (Mi Cuenta)
+                        // Solo los CLIENTES pueden acceder a su perfil de tienda
+                        .requestMatchers("/api/store/**").hasRole("CLIENTE")
+                        // 3. Reglas del Panel Administrativo
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // 4. Reglas Generales Autenticadas (Logout, Me)
+                        .requestMatchers("/api/auth/logout", "/api/auth/me").authenticated()
+                        // 5. Fallback de seguridad
+                        .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
