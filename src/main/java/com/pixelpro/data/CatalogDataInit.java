@@ -127,7 +127,7 @@ public class CatalogDataInit implements CommandLineRunner {
 
             for (String fileNameBase : fileNames) {
                 String sku = generateSku(categoryName, fileNameBase);
-                String name = formatProductName(fileNameBase);
+                String name = formatProductName(fileNameBase, categoryName);
                 String imageUrl = generateImageUrl(categoryName, fileNameBase);
                 BigDecimal price = generatePrice(categoryName, random);
                 int stock = random.nextInt(50) + 10;
@@ -234,8 +234,41 @@ public class CatalogDataInit implements CommandLineRunner {
         return BigDecimal.valueOf(base + (random.nextInt(99) / 100.0)).setScale(2, RoundingMode.HALF_UP);
     }
 
-    private String formatProductName(String fileName) {
-        return fileName.replace("_", " ");
+    private String formatProductName(String fileName, String categoryName) {
+        // 1. Reemplazar guiones bajos por espacios
+        String rawName = fileName.replace("_", " ");
+
+        // 2. Obtener el singular gramaticalmente correcto
+        String singularCategory = getSingularCategoryName(categoryName);
+
+        // 3. Verificar si ya empieza con la categoría (Case Insensitive)
+        if (rawName.toLowerCase().startsWith(singularCategory.toLowerCase())) {
+            return rawName;
+        } else if (rawName.toLowerCase().startsWith(categoryName.toLowerCase())) {
+            return rawName;
+        }
+
+        // 4. Si no tiene el prefijo, lo agregamos
+        return singularCategory + " " + rawName;
+    }
+
+    // Nuevo auxiliar para singularizar correctamente
+    private String getSingularCategoryName(String plural) {
+        return switch (plural) {
+            case "Auriculares" -> "Auricular";
+            case "Monitores" -> "Monitor";
+            case "Mouses" -> "Mouse"; // Mouse es un anglicismo, su singular es igual o Mouse
+            case "Teclados" -> "Teclado";
+            case "Graficas" -> "Grafica";
+            default -> {
+                if (plural.endsWith("es")) {
+                    yield plural.substring(0, plural.length() - 2);
+                } else if (plural.endsWith("s")) {
+                    yield plural.substring(0, plural.length() - 1);
+                }
+                yield plural;
+            }
+        };
     }
 
     private String getModelFromFileName(String fileName) {
