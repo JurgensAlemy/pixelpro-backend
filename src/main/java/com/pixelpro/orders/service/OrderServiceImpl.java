@@ -1,9 +1,23 @@
 package com.pixelpro.orders.service;
 
+import com.pixelpro.billing.entity.InvoiceEntity;
 import com.pixelpro.billing.entity.PaymentEntity;
+import com.pixelpro.billing.entity.enums.CurrencyCode;
+import com.pixelpro.billing.entity.enums.InvoiceStatus;
+import com.pixelpro.billing.entity.enums.InvoiceType;
+import com.pixelpro.billing.entity.enums.PaymentStatus;
+import com.pixelpro.catalog.entity.ProductEntity;
+import com.pixelpro.catalog.repository.ProductRepository;
+import com.pixelpro.common.exception.ConflictException;
 import com.pixelpro.common.exception.ResourceNotFoundException;
+import com.pixelpro.customers.entity.AddressEntity;
+import com.pixelpro.customers.entity.CustomerEntity;
+import com.pixelpro.customers.repository.AddressRepository;
+import com.pixelpro.customers.repository.CustomerRepository;
+import com.pixelpro.orders.dto.CheckoutRequestDto;
 import com.pixelpro.orders.dto.OrderDto;
 import com.pixelpro.orders.entity.OrderEntity;
+import com.pixelpro.orders.entity.OrderItemEntity;
 import com.pixelpro.orders.entity.enums.DeliveryType;
 import com.pixelpro.orders.entity.enums.OrderStatus;
 import com.pixelpro.orders.mapper.OrderMapper;
@@ -14,6 +28,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true) // 1. Regla general: Solo lectura (optimización)
@@ -21,6 +41,13 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
+    private final CustomerRepository customerRepository;
+    private final AddressRepository addressRepository;
+    private final ProductRepository productRepository;
+
+    // Constantes para el MVP
+    private static final BigDecimal SHIPPING_COST_DELIVERY = new BigDecimal("15.00");
+    private static final BigDecimal SHIPPING_COST_PICKUP = BigDecimal.ZERO;
 
     @Override
     public Page<OrderDto> getAllOrders(String search, OrderStatus status, DeliveryType deliveryType, Pageable pageable) {
@@ -102,6 +129,133 @@ public class OrderServiceImpl implements OrderService {
             forceLoadLazyCollections(entity);
             return orderMapper.toDto(entity);
         });
+    }
+
+    @Override
+    @Transactional
+    public OrderDto processCheckout(String email, CheckoutRequestDto request) {
+        // 1. BUSCAR CLIENTE
+        CustomerEntity customer = customerRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado"));
+
+        // 2. VALIDAR Y OBTENER DIRECCIÓN DE ENVÍO
+        AddressEntity shippingAddress = null;
+        BigDecimal shippingCost;
+
+        if (request.deliveryType() == DeliveryType.A_DOMICILIO) {
+            // Validar que se proporcionó addressId
+            if (request.addressId() == null) {
+                throw new ConflictException("La dirección de envío es obligatoria para entregas a domicilio");
+            }
+
+            // Buscar dirección
+            shippingAddress = addressRepository.findById(request.addressId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Dirección no encontrada"));
+
+            // Validar que la dirección pertenece al cliente
+            if (!shippingAddress.getCustomer().getId().equals(customer.getId())) {
+                throw new ResourceNotFoundException("Dirección no encontrada o no pertenece al cliente");
+            }
+
+            shippingCost = SHIPPING_COST_DELIVERY;
+        } else {
+            // RECOJO_EN_TIENDA
+            shippingCost = SHIPPING_COST_PICKUP;
+        }
+
+        // 3. PROCESAR ITEMS Y VALIDAR STOCK
+        List<OrderItemEntity> orderItems = new ArrayList<>();
+        BigDecimal subtotal = BigDecimal.ZERO;
+
+        for (CheckoutRequestDto.CartItemDto cartItem : request.items()) {
+            // Buscar producto
+            ProductEntity product = productRepository.findById(cartItem.productId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con ID: " + cartItem.productId()));
+
+            // Validar stock
+            if (product.getQtyStock() < cartItem.quantity()) {
+                throw new ConflictException("Sin stock suficiente para: " + product.getName() +
+                        " (disponible: " + product.getQtyStock() + ", solicitado: " + cartItem.quantity() + ")");
+            }
+
+            // Actualizar stock
+            product.setQtyStock(product.getQtyStock() - cartItem.quantity());
+            productRepository.save(product);
+
+            // Crear item de orden con precio actual
+            BigDecimal itemTotal = product.getPrice().multiply(new BigDecimal(cartItem.quantity()));
+            OrderItemEntity orderItem = OrderItemEntity.builder()
+                    .product(product)
+                    .quantity(cartItem.quantity().shortValue())
+                    .unitPrice(product.getPrice())
+                    .build();
+
+            orderItems.add(orderItem);
+            subtotal = subtotal.add(itemTotal);
+        }
+
+        // 4. CONSTRUIR ORDEN
+        BigDecimal total = subtotal.add(shippingCost);
+        String orderCode = generateOrderCode();
+
+        OrderEntity order = OrderEntity.builder()
+                .code(orderCode)
+                .status(OrderStatus.CONFIRMADO) // MVP: siempre confirmado
+                .deliveryType(request.deliveryType())
+                .customer(customer)
+                .shippingAddress(shippingAddress)
+                .subtotal(subtotal)
+                .shippingCost(shippingCost)
+                .discount(BigDecimal.ZERO)
+                .total(total)
+                .items(orderItems)
+                .build();
+
+        // Establecer la relación bidireccional con items
+        orderItems.forEach(item -> item.setOrder(order));
+
+        // 5. SIMULAR PAGO (MVP)
+        PaymentEntity payment = PaymentEntity.builder()
+                .amount(total)
+                .currency(CurrencyCode.PEN)
+                .method(request.paymentMethod())
+                .status(PaymentStatus.CONFIRMADO) // MVP: siempre confirmado
+                .transactionId(UUID.randomUUID().toString())
+                .paidAt(LocalDateTime.now())
+                .order(order)
+                .build();
+
+        order.setPayments(List.of(payment));
+
+        // 6. SIMULAR INVOICE (MVP)
+        InvoiceEntity invoice = InvoiceEntity.builder()
+                .type(InvoiceType.BOLETA) // MVP: siempre boleta
+                .serie("B001")
+                .number(String.format("%08d", System.currentTimeMillis() % 100000000))
+                .issuedAt(LocalDateTime.now())
+                .totalAmount(total)
+                .currency(CurrencyCode.PEN)
+                .status(InvoiceStatus.EMITIDO) // MVP: siempre emitido
+                .hashValue(UUID.randomUUID().toString())
+                .documentUrl("https://storage.example.com/invoices/" + orderCode + ".pdf")
+                .order(order)
+                .build();
+
+        order.setInvoice(invoice);
+
+        // 7. GUARDAR ORDEN (cascade guarda items, payment, invoice)
+        OrderEntity savedOrder = orderRepository.save(order);
+
+        // 8. FORZAR CARGA DE LAZY COLLECTIONS Y RETORNAR DTO
+        forceLoadLazyCollections(savedOrder);
+        return orderMapper.toDto(savedOrder);
+    }
+
+    /**
+     * Genera un código único de orden
+     */
+    private String generateOrderCode() {
+        return "ORD-" + System.currentTimeMillis();
     }
 
     /**
