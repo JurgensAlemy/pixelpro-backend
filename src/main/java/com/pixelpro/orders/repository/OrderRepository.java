@@ -28,7 +28,8 @@ public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
             "(:search IS NULL OR :search = '' OR " +
             " LOWER(o.code) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             " LOWER(o.customer.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-            " LOWER(o.customer.lastName) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+            " LOWER(o.customer.lastName) LIKE LOWER(CONCAT('%', :search, '%')) OR" +
+            " LOWER(o.customer.email) LIKE LOWER(CONCAT('%', :search, '%'))) " +
             "AND (:status IS NULL OR o.status = :status) " +
             "AND (:deliveryType IS NULL OR o.deliveryType = :deliveryType)")
     Page<OrderEntity> findAllWithFilters(
