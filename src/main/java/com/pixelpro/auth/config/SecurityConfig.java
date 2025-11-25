@@ -41,7 +41,7 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Reglas públicas
-                        .requestMatchers("/api/public/**",
+                        .requestMatchers("/api/public/**", "/uploads/**",
                                 "/api/auth/login",
                                 "/api/auth/register",
                                 "/swagger-ui/**",
@@ -77,7 +77,8 @@ public class SecurityConfig {
                 "http://127.0.0.1:5500", "http://127.0.0.1:5501",
                 "http://127.0.0.1:5502", "http://127.0.0.1:4200",
                 "http://localhost:5500", "http://localhost:5501",
-                "http://localhost:5502", "http://localhost:4200"
+                "http://localhost:5502", "http://localhost:4200",
+                "http://localhost:5173", "http://localhost:5173"
         ));
         c.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         c.setAllowedHeaders(List.of("*"));
