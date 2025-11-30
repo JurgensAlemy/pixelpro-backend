@@ -213,7 +213,7 @@ public class CatalogDataInit implements CommandLineRunner {
 
     private String generateSku(String category, String filename) {
         String prefix = category.substring(0, 3).toUpperCase();
-        String modelCode = filename.substring(0, Math.min(filename.length(), 3)).toUpperCase();
+        String modelCode = filename.substring(0, Math.min(filename.length(), 4)).toUpperCase();
         return String.format("%s-%s-%03d", prefix, modelCode, new Random().nextInt(999));
     }
 

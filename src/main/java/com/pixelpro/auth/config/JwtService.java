@@ -20,10 +20,10 @@ import java.util.stream.Collectors;
 @Service
 public class JwtService {
 
-    @Value("${jwt.secret-key}")
+    @Value("${jwt.secret}")
     private String secretKey;
 
-    @Value("${jwt.expiration-time}")
+    @Value("${jwt.expiration}")
     private long expirationTime;
 
     private SecretKey key; // Clave lista para usar

@@ -1,6 +1,7 @@
 package com.pixelpro.auth.config;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -18,6 +19,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -28,6 +30,8 @@ public class SecurityConfig {
 
     private final RestAuthenticationEntryPoint unauthorizedHandler;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    @Value("${app.cors.allowed-origins}")
+    private String allowedOrigins;
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
@@ -42,7 +46,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 1. Reglas Públicas (Storefront público y Auth)
                         .requestMatchers(
-                                "/api/public/**", "/uploads/**",
+                                "/api/public/**", "/uploads/**", "/api/payments/**",
                                 "/api/auth/login", "/api/auth/register",
                                 "/swagger-ui/**", "/v3/api-docs/**"
                         ).permitAll()
@@ -73,13 +77,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         var c = new CorsConfiguration();
-        c.setAllowedOrigins(List.of(
-                "http://127.0.0.1:5500", "http://127.0.0.1:5501",
-                "http://127.0.0.1:5502", "http://127.0.0.1:4200",
-                "http://localhost:5500", "http://localhost:5501",
-                "http://localhost:5502", "http://localhost:4200",
-                "http://localhost:5173", "http://localhost:5173"
-        ));
+        c.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
         c.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         c.setAllowedHeaders(List.of("*"));
         c.setAllowCredentials(true);
