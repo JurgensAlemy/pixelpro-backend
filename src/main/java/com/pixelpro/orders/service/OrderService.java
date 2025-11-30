@@ -1,6 +1,7 @@
 package com.pixelpro.orders.service;
 
 import com.pixelpro.orders.dto.CheckoutRequestDto;
+import com.pixelpro.orders.dto.CheckoutResponseDto;
 import com.pixelpro.orders.dto.OrderDto;
 import com.pixelpro.orders.entity.enums.DeliveryType;
 import com.pixelpro.orders.entity.enums.OrderStatus;
@@ -48,12 +49,14 @@ public interface OrderService {
     Page<OrderDto> getMyOrders(String email, OrderStatus status, Pageable pageable);
 
     /**
-     * Procesa el checkout y crea una orden completa con pago e invoice simulados
+     * Procesa el checkout y crea una orden según el method de pago elegido.
+     * Si es MERCADO_PAGO: crea la preferencia y devuelve el ID para redirección.
+     * Si es PAGO_EFECTIVO: confirma la reserva directamente.
      *
      * @param email   Email del cliente autenticado
-     * @param request Datos del checkout (items, dirección, método de pago, etc.)
-     * @return DTO de la orden creada
+     * @param request Datos del checkout (items, dirección, method de pago, etc.)
+     * @return DTO de respuesta con ID de orden, código y preferenceId (si aplica)
      */
-    OrderDto processCheckout(String email, CheckoutRequestDto request);
+    CheckoutResponseDto processCheckout(String email, CheckoutRequestDto request);
 }
 

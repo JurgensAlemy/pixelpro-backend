@@ -1,6 +1,7 @@
 package com.pixelpro.orders.controller.store;
 
 import com.pixelpro.orders.dto.CheckoutRequestDto;
+import com.pixelpro.orders.dto.CheckoutResponseDto;
 import com.pixelpro.orders.dto.OrderDto;
 import com.pixelpro.orders.entity.enums.OrderStatus;
 import com.pixelpro.orders.service.OrderService;
@@ -33,17 +34,20 @@ public class StoreOrderController {
 
     @Operation(
             summary = "Procesar checkout",
-            description = "Crea un nuevo pedido procesando el carrito de compra. Valida stock, calcula totales, " +
-                    "simula pago e invoice (MVP). El pedido se crea en estado CONFIRMADO."
+            description = "Crea un nuevo pedido procesando el carrito de compra. Valida stock, calcula totales. " +
+                    "Si el método de pago es MERCADO_PAGO, retorna un preferenceId para redirección. " +
+                    "Si es PAGO_EFECTIVO (solo para recojo en tienda), confirma la reserva directamente. " +
+                    "REGLA: El pago contra entrega NO está disponible para delivery a domicilio."
     )
     @ApiResponse(
             responseCode = "201",
-            description = "Pedido creado exitosamente",
-            content = @Content(schema = @Schema(implementation = OrderDto.class))
+            description = "Pedido creado exitosamente. Si paymentMethod=MERCADO_PAGO, incluye preferenceId.",
+            content = @Content(schema = @Schema(implementation = CheckoutResponseDto.class))
     )
     @ApiResponse(
             responseCode = "400",
-            description = "Datos de entrada inválidos",
+            description = "Datos de entrada inválidos o regla de negocio violada " +
+                    "(ej: pago contra entrega con delivery a domicilio)",
             content = @Content
     )
     @ApiResponse(
@@ -53,16 +57,16 @@ public class StoreOrderController {
     )
     @ApiResponse(
             responseCode = "409",
-            description = "Stock insuficiente o dirección no pertenece al cliente",
+            description = "Stock insuficiente, dirección no pertenece al cliente, o error al crear preferencia de Mercado Pago",
             content = @Content
     )
     @PostMapping("/orders")
-    public ResponseEntity<OrderDto> processCheckout(
+    public ResponseEntity<CheckoutResponseDto> processCheckout(
             @Valid @RequestBody CheckoutRequestDto request,
             Principal principal
     ) {
-        OrderDto order = orderService.processCheckout(principal.getName(), request);
-        return ResponseEntity.status(201).body(order);
+        CheckoutResponseDto response = orderService.processCheckout(principal.getName(), request);
+        return ResponseEntity.status(201).body(response);
     }
 
     @Operation(
