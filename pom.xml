@@ -27,10 +27,17 @@
         <url/>
     </scm>
     <properties>
+        <!-- Establece el "idioma" por defecto. Si no pones esto, Maven usa la codificación de tu Windows
+         (que suele ser CP1252), y cuando subes el código a un servidor Linux (que usa UTF-8),
+          los acentos se rompen.-->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
         <java.version>21</java.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
-        <springdoc.version>2.8.13</springdoc.version>
+        <springdoc.version>2.8.14</springdoc.version>
         <jjwt.version>0.12.6</jjwt.version>
+        <mercadopago.version>2.8.0</mercadopago.version>
     </properties>
     <dependencies>
         <dependency>
@@ -102,16 +109,41 @@
             <version>${jjwt.version}</version>
             <scope>runtime</scope>
         </dependency>
+        <dependency>
+            <groupId>com.mercadopago</groupId>
+            <artifactId>sdk-java</artifactId>
+            <version>${mercadopago.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
+        <!-- Maven tiene una función llamada "filtering" que busca variables ${...} para reemplazarlas.
+         Al intentar leer tu archivo para buscar esas variables, se encontraba con un carácter que no entendía y explotaba.-->
+        <resources>
+            <!-- Solución: Le dijimos "Copia el archivo application.properties tal cual, sin intentar leerlo ni modificarlo".
+             Esto arregló el error de compilación.-->
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <excludes>
+                    <exclude>application.properties</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <includes>
+                    <include>application.properties</include>
+                </includes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <!-- Esta línea es necesaria para que Jackson sepa cómo
-                         mapear JSON a los 'records' de Java (como RegisterRequest) -->
+                         mapear JSON a los 'records' de Java -->
                     <compilerArgs>
                         <arg>-parameters</arg>
                     </compilerArgs>
@@ -134,7 +166,13 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
-
 </project>
