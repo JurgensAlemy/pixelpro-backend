@@ -24,6 +24,7 @@ import com.pixelpro.orders.entity.enums.OrderStatus;
 import com.pixelpro.orders.mapper.OrderMapper;
 import com.pixelpro.orders.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -32,7 +33,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +45,9 @@ public class OrderServiceImpl implements OrderService {
     private final AddressRepository addressRepository;
     private final ProductRepository productRepository;
     private final MpPaymentService mpPaymentService;
+
+    @Value("${app.base-url}")
+    private String baseUrl;
 
     // Constantes para el MVP
     private static final BigDecimal SHIPPING_COST_DELIVERY = new BigDecimal("15.00");
@@ -89,7 +92,6 @@ public class OrderServiceImpl implements OrderService {
         return orderMapper.toDto(updated);
     }
 
-
     @Override
     public Page<OrderDto> getMyOrders(String email, OrderStatus status, Pageable pageable) {
         Page<OrderEntity> orders;
@@ -109,57 +111,52 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public CheckoutResponseDto processCheckout(String email, CheckoutRequestDto request) {
-        // PASO 1: VALIDAR REGLAS DE NEGOCIO
+        // 1. VALIDACIONES INICIALES
         validateBusinessRules(request);
-
-        // PASO 2: BUSCAR CLIENTE
         CustomerEntity customer = customerRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado: " + email));
 
-        // PASO 3: VALIDAR Y OBTENER DIRECCIÓN DE ENVÍO
+        // 2. DIRECCIÓN Y COSTO DE ENVÍO
         AddressEntity shippingAddress = null;
         BigDecimal shippingCost;
 
         if (request.deliveryType() == DeliveryType.A_DOMICILIO) {
-            // Validar que se proporcionó addressId
             if (request.addressId() == null) {
-                throw new ConflictException("La dirección de envío es obligatoria para entregas a domicilio");
+                throw new ConflictException("La dirección es obligatoria para delivery");
             }
-            // Buscar dirección
             shippingAddress = addressRepository.findById(request.addressId())
                     .orElseThrow(() -> new ResourceNotFoundException("Dirección no encontrada"));
 
-            // Validar que la dirección pertenece al cliente
             if (!shippingAddress.getCustomer().getId().equals(customer.getId())) {
-                throw new ResourceNotFoundException("Dirección no encontrada o no pertenece al cliente");
+                throw new ConflictException("La dirección no pertenece al cliente");
             }
             shippingCost = SHIPPING_COST_DELIVERY;
         } else {
-            // RECOJO_EN_TIENDA
             shippingCost = SHIPPING_COST_PICKUP;
         }
 
-        // PASO 4: PROCESAR ITEMS Y VALIDAR STOCK
+        // 3. PROCESAR ITEMS (STOCK Y ENTIDADES)
         List<OrderItemEntity> orderItems = new ArrayList<>();
-        List<PreferenceItemRequest> mpItems = new ArrayList<>(); // <--- Lista para Mercado Pago
+        // Lista para MP (Solo se llenará si el method es MP)
+        List<PreferenceItemRequest> mpItems = (request.paymentMethod() == PaymentMethod.MERCADO_PAGO)
+                ? new ArrayList<>() : null;
+
         BigDecimal subtotal = BigDecimal.ZERO;
 
         for (CheckoutRequestDto.CartItemDto cartItem : request.items()) {
-            // Buscar producto
             ProductEntity product = productRepository.findById(cartItem.productId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con ID: " + cartItem.productId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Producto ID " + cartItem.productId() + " no encontrado"));
 
-            // Validar stock
+            // Validar Stock
             if (product.getQtyStock() < cartItem.quantity()) {
-                throw new ConflictException("Sin stock suficiente para: " + product.getName() +
-                        " (disponible: " + product.getQtyStock() + ", solicitado: " + cartItem.quantity() + ")");
+                throw new ConflictException("Stock insuficiente para: " + product.getName());
             }
 
-            // Actualizar stock (Reducir stock para ambos casos)
+            // Reducir Stock
             product.setQtyStock(product.getQtyStock() - cartItem.quantity());
             productRepository.save(product);
 
-            // Crear item de orden con precio actual
+            // Crear Item de Orden
             BigDecimal itemTotal = product.getPrice().multiply(new BigDecimal(cartItem.quantity()));
             OrderItemEntity orderItem = OrderItemEntity.builder()
                     .product(product)
@@ -169,41 +166,37 @@ public class OrderServiceImpl implements OrderService {
             orderItems.add(orderItem);
             subtotal = subtotal.add(itemTotal);
 
-            // --- CONSTRUIR ITEM PARA MERCADO PAGO ---
-            // Si es pago online, agregamos a la lista
-            if (request.paymentMethod() == PaymentMethod.MERCADO_PAGO) {
+            // --- SOLO SI ES MP: Construir Item de Preferencia ---
+            if (mpItems != null) {
+                // Asegurar URL absoluta para la imagen
+                String imgUrl = product.getImageUrl();
+                if (imgUrl != null && !imgUrl.startsWith("http")) {
+                    imgUrl = baseUrl + imgUrl;
+                }
+
                 mpItems.add(PreferenceItemRequest.builder()
                         .id(String.valueOf(product.getId()))
                         .title(product.getName())
-                        .description(product.getDescription())
+                        .description(product.getDescription() != null ?
+                                product.getDescription().substring(0, Math.min(product.getDescription().length(), 200)) : "")
                         .categoryId(product.getCategory().getName())
                         .quantity(cartItem.quantity())
-                        .unitPrice(product.getPrice()) // Precio unitario real
+                        .unitPrice(product.getPrice())
                         .currencyId("PEN")
-                        .pictureUrl("https://bettina-tactile-ogrishly.ngrok-free.dev" + product.getImageUrl())
+                        .pictureUrl(imgUrl)
                         .build());
             }
         }
 
-        // 4. AGREGAR COSTO DE ENVÍO A MP (Si aplica)
-        if (request.paymentMethod() == PaymentMethod.MERCADO_PAGO && shippingCost.compareTo(BigDecimal.ZERO) > 0) {
-            mpItems.add(PreferenceItemRequest.builder()
-                    .title("Costo de Envío")
-                    .quantity(1)
-                    .unitPrice(shippingCost)
-                    .currencyId("PEN")
-                    .build());
-        }
-
-        // PASO 5: CONSTRUIR ORDEN
+        // 4. CALCULAR TOTALES
         BigDecimal total = subtotal.add(shippingCost);
         String orderCode = generateOrderCode();
 
-        // Determinar el estado inicial según el method de pago
+        // Estado Inicial
         OrderStatus initialStatus = (request.paymentMethod() == PaymentMethod.MERCADO_PAGO)
-                ? OrderStatus.PENDIENTE
-                : OrderStatus.CONFIRMADO;
+                ? OrderStatus.PENDIENTE : OrderStatus.CONFIRMADO;
 
+        // 5. CREAR ORDEN BASE
         OrderEntity order = OrderEntity.builder()
                 .code(orderCode)
                 .status(initialStatus)
@@ -217,44 +210,71 @@ public class OrderServiceImpl implements OrderService {
                 .items(orderItems)
                 .build();
 
-        // Establecer la relación bidireccional con items
+        // Relación bidireccional
         orderItems.forEach(item -> item.setOrder(order));
-        // Guardamos primero para tener el ID
+
+        // Guardar Orden (Aquí ya tenemos ID)
         OrderEntity savedOrder = orderRepository.save(order);
 
-        // PASO 6: MANEJAR FLUJO SEGÚN METHOD DE PAGO
+        // 6. BIFURCACIÓN DE FLUJO DE PAGO
         if (request.paymentMethod() == PaymentMethod.MERCADO_PAGO) {
-            // FLUJO MERCADO PAGO: Crear preferencia y NO crear pago ni invoice aún
-            // El webhook de MP se encargará de confirmar el pago y generar la invoice
-            // Creamos la preferencia en Mercado Pago
+            // --- FLUJO A: MERCADO PAGO ---
             try {
-                // Llamar a MP pasando la LISTA DE ITEMS y el ID de la orden
+                // Agregar envío a MP si existe
+                if (shippingCost.compareTo(BigDecimal.ZERO) > 0 && mpItems != null) {
+                    mpItems.add(PreferenceItemRequest.builder()
+                            .title("Costo de Envío")
+                            .quantity(1)
+                            .unitPrice(shippingCost)
+                            .currencyId("PEN")
+                            .build());
+                }
+
                 String externalRef = String.valueOf(savedOrder.getId());
-                System.out.println("DEBUG MP ITEMS: " + mpItems.size());
-                mpItems.forEach(i -> System.out.println(" - " + i.getTitle() + ": " + i.getUnitPrice()));
+                // Llamada segura (mpItems nunca será null aquí por la lógica del if)
                 String preferenceId = mpPaymentService.createPreference(mpItems, externalRef);
 
                 return new CheckoutResponseDto(savedOrder.getId(), savedOrder.getCode(), preferenceId);
+
             } catch (Exception e) {
-                // Rollback manual si falla MP (aunque @Transactional debería cubrirlo, es bueno para logs)
-                rollbackStock(orderItems);
-                throw new ConflictException("Error al procesar el pago con Mercado Pago: " + e.getMessage());
+                // Rollback manual si falla la API externa (aunque Transactional haría rollback general,
+                // esto nos permite loguear o manejar errores específicos)
+                throw new RuntimeException("Error al conectar con Mercado Pago: " + e.getMessage(), e);
             }
 
         } else {
-            // FLUJO PAGO EFECTIVO: Confirmar reserva inmediatamente
+            // --- FLUJO B: PAGO EFECTIVO (RECOJO EN TIENDA) ---
+
+            // Crear Payment Entity "PENDIENTE" (A pagar en mostrador)
             PaymentEntity payment = PaymentEntity.builder()
                     .amount(total)
                     .currency(CurrencyCode.PEN)
                     .method(request.paymentMethod())
-                    .status(PaymentStatus.PENDIENTE) // El pago se confirmará al entregar
-                    .transactionId(UUID.randomUUID().toString())
-                    .order(order)
+                    .status(PaymentStatus.PENDIENTE)
+                    .transactionId("CASH-" + orderCode) // ID interno para efectivo
+                    .order(savedOrder)
                     .build();
-            savedOrder.setPayments(List.of(payment));
+
+            // No creamos Invoice todavía (se emite al pagar en tienda)
+            // O si prefieres crearla PENDIENTE:
+            /*
+            InvoiceEntity invoice = InvoiceEntity.builder() ... status(PENDIENTE) ...
+            savedOrder.setInvoice(invoice);
+            */
+
+            // Guardamos el pago (Cascade debería funcionar si Order tiene CascadeType.ALL en payments)
+            // Pero como payments es OneToMany, lo mejor es guardar el payment directamente
+            // O agregarlo a la lista de la orden y volver a guardar la orden
+
+            // Opción segura: Guardar orden con la lista actualizada (si cascade está bien)
+            // O guardar el payment repository si lo inyectaste.
+            // Asumimos cascade en OrderEntity:
+            List<PaymentEntity> payments = new ArrayList<>();
+            payments.add(payment);
+            savedOrder.setPayments(payments);
+
             orderRepository.save(savedOrder);
 
-            // Retornar respuesta sin preferenceId
             return new CheckoutResponseDto(savedOrder.getId(), savedOrder.getCode(), null);
         }
     }
@@ -279,17 +299,14 @@ public class OrderServiceImpl implements OrderService {
             );
         }
     }
-
-    /**
-     * Revierte el stock de productos en caso de error en el proceso de checkout
-     */
-    private void rollbackStock(List<OrderItemEntity> orderItems) {
-        for (OrderItemEntity item : orderItems) {
-            ProductEntity product = item.getProduct();
-            product.setQtyStock(product.getQtyStock() + item.getQuantity());
-            productRepository.save(product);
-        }
-    }
+    
+//    private void rollbackStock(List<OrderItemEntity> orderItems) {
+//        for (OrderItemEntity item : orderItems) {
+//            ProductEntity product = item.getProduct();
+//            product.setQtyStock(product.getQtyStock() + item.getQuantity());
+//            productRepository.save(product);
+//        }
+//    }
 
     /**
      * Valida la transición de estados según el flujo de negocio del Ecommerce.
