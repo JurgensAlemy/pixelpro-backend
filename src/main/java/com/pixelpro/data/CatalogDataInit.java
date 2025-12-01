@@ -73,7 +73,7 @@ public class CatalogDataInit implements CommandLineRunner {
                         "Teclado_Logitech_G213_Bluetooth",
                         "Teclado_Logitech_G213_USB",
                         "Teclado_Logitech_G_Pro_TKL_Bluetooth",
-                        "Teclado_Logitech_G_Pro_TKL_USB",
+                        "Teclado_logitech_G_Pro_TKL_USB",
                         "Teclado_Razer_BlackWidow_V4_Pro_Bluetooth",
                         "Teclado_Razer_BlackWidow_V4_Pro_USB"
                 ),
